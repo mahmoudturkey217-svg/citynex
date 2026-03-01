@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/report_model.dart';
 import 'package:intl/intl.dart';
 import '../mock_data.dart';
+import '../core/utils/cache_helper.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -16,7 +17,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   String _selectedFilter = 'All';
 
   final List<String> _filters = [
-    'All', 'Pending', 'Open', 'In Progress', 'Resolved', 'Closed'
+    'All',
+    'Pending',
+    'Open',
+    'In Progress',
+    'Resolved',
+    'Closed',
   ];
 
   @override
@@ -164,312 +170,333 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(28),
                 bottomRight: Radius.circular(28),
-                  ),
-                ),
-                padding: EdgeInsets.fromLTRB(
-                    20, MediaQuery.of(context).padding.top + 16, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.of(context).padding.top + 16,
+              20,
+              24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Admin Panel',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.65),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _adminName.isNotEmpty
+                                ? 'Welcome, $_adminName'
+                                : 'Welcome, Admin',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.amber.withOpacity(0.4),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.shield, color: Colors.amber, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'Admin',
+                            style: TextStyle(
+                              color: Colors.amber,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ─── OVERVIEW STATS ───
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const Text(
+              'Overview',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1D26),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Top row: Total + Resolution Rate
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF0A2D4F), Color(0xFF1565C0)],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0D3B66).withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Admin Panel',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withOpacity(0.65),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _adminName.isNotEmpty
-                                    ? 'Welcome, $_adminName'
-                                    : 'Welcome, Admin',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          '$total',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border:
-                                Border.all(color: Colors.amber.withOpacity(0.4)),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Total Reports',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.shield, color: Colors.amber, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                'Admin',
-                                style: TextStyle(
-                                  color: Colors.amber,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'All submissions',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.65),
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Resolution Rate',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A1D26),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: total > 0 ? resolved / total : 0,
+                            minHeight: 6,
+                            backgroundColor: Colors.grey.shade200,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF2ECC71),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              children: [
+                                Text(
+                                  '$resolved',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2ECC71),
+                                  ),
+                                ),
+                                Text(
+                                  'Resolved',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              children: [
+                                Text(
+                                  '${total - resolved}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFF39C12),
+                                  ),
+                                ),
+                                Text(
+                                  'Remaining',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
 
-              const SizedBox(height: 20),
+          // Status cards row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard('⏳', pending, 'Pending', Colors.orange),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildStatCard(
+                    '📂',
+                    open,
+                    'Open',
+                    const Color(0xFF4A90D9),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildStatCard(
+                    '👥',
+                    inProgress,
+                    'In Progress',
+                    const Color(0xFF9B59B6),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildStatCard(
+                    '✅',
+                    resolved,
+                    'Resolved',
+                    const Color(0xFF2ECC71),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-              // ─── OVERVIEW STATS ───
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Text(
-                  'Overview',
+          const SizedBox(height: 24),
+
+          // ─── RECENT REPORTS ───
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Reports',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1A1D26),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-
-              // Top row: Total + Resolution Rate
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF0A2D4F), Color(0xFF1565C0)],
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  const Color(0xFF0D3B66).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$total',
-                              style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Total Reports',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'All submissions',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.white.withOpacity(0.65),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: () => setState(() => _currentNavIndex = 1),
+                  child: const Text(
+                    '→ View all',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF4A90D9),
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 5,
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Resolution Rate',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1A1D26),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: LinearProgressIndicator(
-                                value: total > 0 ? resolved / total : 0,
-                                minHeight: 6,
-                                backgroundColor: Colors.grey.shade200,
-                                valueColor:
-                                    const AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF2ECC71)),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  children: [
-                                    Text(
-                                      '$resolved',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF2ECC71),
-                                      ),
-                                    ),
-                                    Text(
-                                      'Resolved',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  children: [
-                                    Text(
-                                      '${total - resolved}',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFFF39C12),
-                                      ),
-                                    ),
-                                    Text(
-                                      'Remaining',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Status cards row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: _buildStatCard(
-                            '⏳', pending, 'Pending', Colors.orange)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                        child: _buildStatCard(
-                            '📂', open, 'Open', const Color(0xFF4A90D9))),
-                    const SizedBox(width: 10),
-                    Expanded(
-                        child: _buildStatCard('👥', inProgress,
-                            'In Progress', const Color(0xFF9B59B6))),
-                    const SizedBox(width: 10),
-                    Expanded(
-                        child: _buildStatCard(
-                            '✅', resolved, 'Resolved', const Color(0xFF2ECC71))),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ─── RECENT REPORTS ───
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recent Reports',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1D26),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _currentNavIndex = 1),
-                      child: const Text(
-                        '→ View all',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF4A90D9),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              if (reports.isEmpty)
-                _buildEmptyState()
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children:
-                        reports.take(5).map((r) => _buildReportCard(r)).toList(),
                   ),
                 ),
-
-              const SizedBox(height: 24),
-            ],
+              ],
+            ),
           ),
-        );
+          const SizedBox(height: 12),
+
+          if (reports.isEmpty)
+            _buildEmptyState()
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: reports
+                    .take(5)
+                    .map((r) => _buildReportCard(r))
+                    .toList(),
+              ),
+            ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
   }
 
-  Widget _buildStatCard(
-      String emoji, int count, String label, Color color) {
+  Widget _buildStatCard(String emoji, int count, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
@@ -545,7 +572,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   onTap: () => setState(() => _selectedFilter = filter),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 8),
+                      horizontal: 18,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? const Color(0xFF0D3B66)
@@ -562,9 +591,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : Colors.grey.shade600,
+                        color: isSelected ? Colors.white : Colors.grey.shade600,
                       ),
                     ),
                   ),
@@ -678,10 +705,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   const SizedBox(height: 6),
                   Text(
                     'Coming soon',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -699,9 +723,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     final reports = MockReports.all;
     final totalReports = reports.length;
     final resolved = reports.where((r) => r.status == 'Resolved').length;
-    final rate = totalReports > 0
-        ? (resolved / totalReports * 100).round()
-        : 0;
+    final rate = totalReports > 0 ? (resolved / totalReports * 100).round() : 0;
 
     return SingleChildScrollView(
       child: Column(
@@ -721,10 +743,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
             padding: EdgeInsets.fromLTRB(
-                24,
-                MediaQuery.of(context).padding.top + 20,
-                24,
-                28),
+              24,
+              MediaQuery.of(context).padding.top + 20,
+              24,
+              28,
+            ),
             child: Column(
               children: [
                 CircleAvatar(
@@ -732,234 +755,232 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   backgroundColor: Colors.white.withOpacity(0.2),
                   child: Text(
                     MockAdmin.name[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          MockAdmin.name,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          MockAdmin.email,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: Colors.amber.withOpacity(0.4)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.shield,
-                                  color: Colors.amber, size: 14),
-                              SizedBox(width: 4),
-                              Text(
-                                'Admin',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.amber,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildProfileStat('$totalReports', 'Reports'),
-                            Container(
-                              width: 1,
-                              height: 36,
-                              color: Colors.white.withOpacity(0.3),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 28),
-                            ),
-                            _buildProfileStat('$resolved', 'Resolved'),
-                            Container(
-                              width: 1,
-                              height: 36,
-                              color: Colors.white.withOpacity(0.3),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 28),
-                            ),
-                            _buildProfileStat('$rate%', 'Rate'),
-                          ],
-                        ),
-                      ],
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Settings
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Management',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              _buildMenuItem(
-                                icon: Icons.people_outline,
-                                label: 'Manage Users',
-                                onTap: () =>
-                                    setState(() => _currentNavIndex = 2),
-                              ),
-                              Divider(
-                                  height: 1,
-                                  indent: 56,
-                                  color: Colors.grey.shade100),
-                              _buildMenuItem(
-                                icon: Icons.bar_chart,
-                                label: 'Analytics',
-                                onTap: () {},
-                              ),
-                              Divider(
-                                  height: 1,
-                                  indent: 56,
-                                  color: Colors.grey.shade100),
-                              _buildMenuItem(
-                                icon: Icons.settings_outlined,
-                                label: 'App Settings',
-                                onTap: () {},
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  MockAdmin.name,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-
-                  const SizedBox(height: 20),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Account',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              _buildMenuItem(
-                                icon: Icons.person_outline,
-                                label: 'Personal Information',
-                                onTap: () {},
-                              ),
-                              Divider(
-                                  height: 1,
-                                  indent: 56,
-                                  color: Colors.grey.shade100),
-                              _buildMenuItem(
-                                icon: Icons.notifications_outlined,
-                                label: 'Notification Preferences',
-                                onTap: () {},
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  MockAdmin.email,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.7),
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Sign Out
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushReplacementNamed(
-                              context, '/login');
-                        },
-                        icon: const Icon(Icons.logout, size: 20),
-                        label: const Text(
-                          'Sign Out',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade50,
-                          foregroundColor: Colors.red.shade400,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.shield, color: Colors.amber, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Admin',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber,
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildProfileStat('$totalReports', 'Reports'),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: Colors.white.withOpacity(0.3),
+                      margin: const EdgeInsets.symmetric(horizontal: 28),
+                    ),
+                    _buildProfileStat('$resolved', 'Resolved'),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: Colors.white.withOpacity(0.3),
+                      margin: const EdgeInsets.symmetric(horizontal: 28),
+                    ),
+                    _buildProfileStat('$rate%', 'Rate'),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
-                  const SizedBox(height: 100),
-                ],
+          const SizedBox(height: 24),
+
+          // Settings
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Management',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      _buildMenuItem(
+                        icon: Icons.people_outline,
+                        label: 'Manage Users',
+                        onTap: () => setState(() => _currentNavIndex = 2),
+                      ),
+                      Divider(
+                        height: 1,
+                        indent: 56,
+                        color: Colors.grey.shade100,
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.bar_chart,
+                        label: 'Analytics',
+                        onTap: () {},
+                      ),
+                      Divider(
+                        height: 1,
+                        indent: 56,
+                        color: Colors.grey.shade100,
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.settings_outlined,
+                        label: 'App Settings',
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Account',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      _buildMenuItem(
+                        icon: Icons.person_outline,
+                        label: 'Personal Information',
+                        onTap: () {},
+                      ),
+                      Divider(
+                        height: 1,
+                        indent: 56,
+                        color: Colors.grey.shade100,
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.notifications_outlined,
+                        label: 'Notification Preferences',
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Sign Out
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await CacheHelper.clearData();
+                  if (!context.mounted) return;
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                icon: const Icon(Icons.logout, size: 20),
+                label: const Text(
+                  'Sign Out',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade50,
+                  foregroundColor: Colors.red.shade400,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
               ),
-            );
+            ),
+          ),
+
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
   }
 
   Widget _buildProfileStat(String value, String label) {
@@ -976,10 +997,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.white.withOpacity(0.7),
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
         ),
       ],
     );
@@ -1008,10 +1026,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           color: Color(0xFF1A1D26),
         ),
       ),
-      trailing:
-          Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Colors.grey.shade400,
+        size: 20,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
     );
   }
 
@@ -1070,16 +1090,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         width: 60,
                         height: 60,
                         color: Colors.grey.shade100,
-                        child: const Icon(Icons.broken_image,
-                            color: Colors.grey, size: 24),
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 24,
+                        ),
                       ),
                     )
                   : Container(
                       width: 60,
                       height: 60,
                       color: Colors.grey.shade100,
-                      child: const Icon(Icons.image,
-                          color: Colors.grey, size: 24),
+                      child: const Icon(
+                        Icons.image,
+                        color: Colors.grey,
+                        size: 24,
+                      ),
                     ),
             ),
             const SizedBox(width: 14),
@@ -1102,7 +1128,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF0D3B66).withOpacity(0.08),
                           borderRadius: BorderRadius.circular(6),
@@ -1119,7 +1147,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
@@ -1127,8 +1157,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(statusIcon,
-                                size: 11, color: statusColor),
+                            Icon(statusIcon, size: 11, color: statusColor),
                             const SizedBox(width: 4),
                             Text(
                               report.status,
@@ -1155,8 +1184,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right,
-                color: Colors.grey.shade400, size: 20),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
           ],
         ),
       ),
@@ -1182,8 +1210,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         ),
         child: Column(
           children: [
-            Icon(Icons.inbox_outlined,
-                size: 64, color: Colors.grey.shade300),
+            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 14),
             const Text(
               'No Reports yet',
@@ -1196,10 +1223,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             const SizedBox(height: 6),
             Text(
               'Reports from users will appear here',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             ),
           ],
         ),

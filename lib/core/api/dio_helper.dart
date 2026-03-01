@@ -1,0 +1,75 @@
+import 'package:dio/dio.dart';
+import 'api_endpoints.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+
+class DioHelper {
+  static late Dio dio;
+
+  static void init() {
+    dio = Dio(
+      BaseOptions(
+        baseUrl: ApiEndpoints.baseUrl,
+        receiveDataWhenStatusError: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    dio.interceptors.add(
+      PrettyDioLogger(
+        request: true,
+        requestHeader: true,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+        compact: false,
+        maxWidth: 90,
+      ),
+    );
+  }
+
+  static Future<Response> getData({
+    required String url,
+    Map<String, dynamic>? query,
+    String? token,
+  }) async {
+    dio.options.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    return await dio.get(url, queryParameters: query);
+  }
+
+  static Future<Response> postData({
+    required String url,
+    Map<String, dynamic>? query,
+    required dynamic data,
+    String? token,
+  }) async {
+    dio.options.headers = {
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    return dio.post(url, queryParameters: query, data: data);
+  }
+
+  static Future<Response> putData({
+    required String url,
+    Map<String, dynamic>? query,
+    required dynamic data,
+    String? token,
+  }) async {
+    dio.options.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    return dio.put(url, queryParameters: query, data: data);
+  }
+}

@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/splash_screen.dart';
-import 'screens/onboarding_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
+import 'screens/main/splash/splash_screen.dart';
+import 'screens/main/onboarding/ui/onboarding_screen.dart';
+import 'screens/main/auth/ui/screens/login_screen.dart';
+import 'screens/main/auth/ui/screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/create_report_screen.dart';
 import 'screens/report_details_screen.dart';
 import 'screens/admin_home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/location_permission_screen.dart';
-import 'screens/forgot_password_screen.dart';
-import 'screens/change_password_screen.dart';
+import 'screens/main/auth/ui/screens/forgot_password_screen.dart';
+import 'screens/main/auth/ui/screens/change_password_screen.dart';
 import 'screens/personal_info_screen.dart';
 import 'screens/notification_preferences_screen.dart';
 import 'screens/help_support_screen.dart';
 import 'screens/about_screen.dart';
 
-void main() {
+import 'core/utils/cache_helper.dart';
+import 'core/api/dio_helper.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/utils/bloc_observer.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await CacheHelper.init();
+  DioHelper.init();
+
+  Bloc.observer = MyBlocObserver();
+
   runApp(const MyApp());
 }
 
@@ -37,10 +48,7 @@ class MyApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.interTextTheme(),
         scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
+        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
         cardTheme: CardThemeData(
           elevation: 2,
           shadowColor: Colors.black12,
@@ -73,7 +81,8 @@ class MyApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/change-password': (context) => const ChangePasswordScreen(),
           '/personal-info': (context) => const PersonalInfoScreen(),
-          '/notification-preferences': (context) => const NotificationPreferencesScreen(),
+          '/notification-preferences': (context) =>
+              const NotificationPreferencesScreen(),
           '/help-support': (context) => const HelpSupportScreen(),
           '/about': (context) => const AboutScreen(),
         };
@@ -98,8 +107,10 @@ class MyApp extends StatelessWidget {
                 end: Offset.zero,
               ).animate(curvedAnimation),
               child: FadeTransition(
-                opacity: Tween<double>(begin: 0.0, end: 1.0)
-                    .animate(curvedAnimation),
+                opacity: Tween<double>(
+                  begin: 0.0,
+                  end: 1.0,
+                ).animate(curvedAnimation),
                 child: child,
               ),
             );
