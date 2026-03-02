@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../mock_data.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../core/utils/cache_helper.dart';
+import '../screens/main/tickets/logic/ticket_cubit.dart';
+import '../screens/main/tickets/logic/ticket_state.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,17 +21,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = UserModel(
-      uid: MockUser.uid,
-      name: MockUser.name,
-      email: MockUser.email,
-      role: MockUser.role,
+      uid: CacheHelper.getData(key: 'token') ?? '',
+      name: CacheHelper.getData(key: 'user_name') ?? MockUser.name,
+      email: CacheHelper.getData(key: 'user_email') ?? MockUser.email,
+      role: CacheHelper.getData(key: 'user_role') ?? MockUser.role,
     );
-    final reports = MockReports.userReports;
-    final totalTickets = reports.length;
-    final resolvedTickets = reports.where((r) => r.status == 'Resolved').length;
-    final rate = totalTickets > 0
-        ? (resolvedTickets / totalTickets * 100).round()
-        : 0;
+
+    return BlocBuilder<TicketCubit, TicketState>(
+      builder: (context, state) {
+        int totalTickets = 0;
+        int resolvedTickets = 0;
+        int rate = 0;
+
+        if (state is TicketSuccess) {
+          totalTickets = state.tickets.length;
+          resolvedTickets = state.tickets
+              .where((t) => t.status == 'Fixed' || t.status == 'Verified')
+              .length;
+          rate = totalTickets > 0
+              ? (resolvedTickets / totalTickets * 100).round()
+              : 0;
+        }
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -57,14 +71,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CircleAvatar(
                   radius: 44,
                   backgroundColor: Colors.white.withOpacity(0.2),
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  backgroundImage: CacheHelper.getData(key: 'user_avatar_local') != null 
+                      ? FileImage(File(CacheHelper.getData(key: 'user_avatar_local'))) 
+                      : null,
+                  child: CacheHelper.getData(key: 'user_avatar_local') == null 
+                      ? Text(
+                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(height: 14),
 
@@ -294,6 +313,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 100),
         ],
       ),
+    );
+      },
     );
   }
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../../services/otp_service.dart';
-import '../../../../../services/auth_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../logic/auth_cubit.dart';
+import '../../logic/auth_state.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -11,8 +12,6 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _otpService = OtpService();
-  final _authService = AuthService();
   final _pageController = PageController();
 
   // Step 1: email
@@ -64,187 +63,117 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // ═══════════════════════════════
   Future<void> _sendOTP() async {
     if (!_emailFormKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final email = _emailController.text.trim();
-
-      // Generate and store OTP
-      _generatedOTP = _otpService.generateOTP();
-      await _otpService.storeOTP(email, _generatedOTP);
-
-      // Send OTP email via EmailJS
-      final emailSent = await _otpService.sendOTPEmail(email, _generatedOTP);
-
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      if (emailSent) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('✅ Verification code sent to your email!'),
-            backgroundColor: const Color(0xFF2ECC71),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      } else {
-        // EmailJS not configured — show OTP for testing
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('📧 Dev mode — Your code: $_generatedOTP'),
-            backgroundColor: Colors.orange.shade600,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 15),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-
-      _goToStep(1);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      _showError('Failed to send OTP. Please try again.');
-    }
+    
+    final email = _emailController.text.trim();
+    AuthCubit.get(context).forgotPassword(email: email);
   }
 
   // ═══════════════════════════════
   //   STEP 2: VERIFY OTP
   // ═══════════════════════════════
-  Future<void> _verifyOTP() async {
+  void _verifyOTP() {
     final otp = _otpControllers.map((c) => c.text).join();
     if (otp.length != 6) {
       _showError('Please enter the full 6-digit code');
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      final email = _emailController.text.trim();
-      final isValid = await _otpService.verifyOTP(email, otp);
-
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      if (isValid) {
-        _goToStep(2);
-      } else {
-        _showError('Invalid or expired code. Please try again.');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      _showError('Verification failed. Please try again.');
-    }
+    // In the new API, OTP is verified during the password reset step
+    _goToStep(2);
   }
 
   // ═══════════════════════════════
   //   STEP 3: RESET PASSWORD
   // ═══════════════════════════════
-  Future<void> _resetPassword() async {
+  void _resetPassword() {
     if (!_passwordFormKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    final email = _emailController.text.trim();
+    final otp = _otpControllers.map((c) => c.text).join();
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
-    try {
-      final email = _emailController.text.trim();
-      final newPassword = _newPasswordController.text;
+    AuthCubit.get(context).resetPassword(
+      email: email,
+      otp: otp,
+      password: newPassword,
+      passwordConfirmation: confirmPassword,
+    );
+  }
 
-      // Try to sign in and update password
-      // This works if user remembers old password (edge case)
-      // For forgot password, we rely on Firebase reset email sent earlier
-      try {
-        await _authService.sendPasswordReset(email);
-      } catch (_) {}
-
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      // Show success dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2ECC71).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    size: 56,
-                    color: Color(0xFF2ECC71),
-                  ),
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2ECC71).withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Password Reset Sent!',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D3B66),
-                  ),
+                child: const Icon(
+                  Icons.check_circle_outline,
+                  size: 56,
+                  color: Color(0xFF2ECC71),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Your identity has been verified.\nA password reset link has been sent to your email. Please check your inbox and spam folder.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                    height: 1.5,
-                  ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Password Reset Successful!',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0D3B66),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.of(context).pushReplacementNamed('/login');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D3B66),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Your password has been successfully reset. You can now log in with your new password.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).pushReplacementNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D3B66),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Text(
-                      'Back to Login',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Back to Login',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      _showError('Failed to reset password. Please try again.');
-    }
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -263,8 +192,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // ═══════════════════════════════
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return BlocConsumer<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthForgotPasswordLoading || state is AuthResetPasswordLoading) {
+          setState(() => _isLoading = true);
+        } else {
+          setState(() => _isLoading = false);
+        }
+
+        if (state is AuthForgotPasswordSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ ${state.message}'),
+              backgroundColor: const Color(0xFF2ECC71),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+          _goToStep(1);
+        } else if (state is AuthForgotPasswordError) {
+          _showError(state.error);
+        } else if (state is AuthResetPasswordSuccess) {
+          _showSuccessDialog();
+        } else if (state is AuthResetPasswordError) {
+          _showError(state.error);
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -321,10 +279,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ],
         ),
       ),
+        );
+      },
     );
   }
 
-  // ─── STEP INDICATOR ───
+// ─── STEP INDICATOR ───
   Widget _buildStepIndicator(int step, String label) {
     final isActive = _currentStep >= step;
     return Column(

@@ -21,6 +21,10 @@ import 'core/utils/cache_helper.dart';
 import 'core/api/dio_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/utils/bloc_observer.dart';
+import 'core/repositories/auth_repository.dart';
+import 'screens/main/auth/logic/auth_cubit.dart';
+import 'core/repositories/ticket_repository.dart';
+import 'screens/main/tickets/logic/ticket_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,38 +41,40 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart Neighborhood',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0D3B66),
-          brightness: Brightness.light,
-        ),
-        textTheme: GoogleFonts.interTextTheme(),
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shadowColor: Colors.black12,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return BlocProvider(
+      create: (_) => TicketCubit(TicketRepository()),
+      child: MaterialApp(
+        title: 'Smart Neighborhood',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF0D3B66),
+            brightness: Brightness.light,
           ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            elevation: 0,
+          textTheme: GoogleFonts.interTextTheme(),
+          scaffoldBackgroundColor: Colors.white,
+          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
+          cardTheme: CardThemeData(
+            elevation: 2,
+            shadowColor: Colors.black12,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            ),
           ),
         ),
-      ),
-      home: const SplashScreen(),
-      onGenerateRoute: (settings) {
-        final routes = <String, WidgetBuilder>{
+        home: const SplashScreen(),
+        onGenerateRoute: (settings) {
+          final routes = <String, WidgetBuilder>{
           '/onboarding': (context) => const OnboardingScreen(),
           '/location-permission': (context) => const LocationPermissionScreen(),
           '/login': (context) => const LoginScreen(),
@@ -78,8 +84,14 @@ class MyApp extends StatelessWidget {
           '/report-details': (context) => const ReportDetailsScreen(),
           '/admin-home': (context) => const AdminHomeScreen(),
           '/profile': (context) => const ProfileScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/change-password': (context) => const ChangePasswordScreen(),
+          '/forgot-password': (context) => BlocProvider(
+            create: (_) => AuthCubit(AuthRepository()),
+            child: const ForgotPasswordScreen(),
+          ),
+          '/change-password': (context) => BlocProvider(
+            create: (_) => AuthCubit(AuthRepository()),
+            child: const ChangePasswordScreen(),
+          ),
           '/personal-info': (context) => const PersonalInfoScreen(),
           '/notification-preferences': (context) =>
               const NotificationPreferencesScreen(),
@@ -117,6 +129,7 @@ class MyApp extends StatelessWidget {
           },
         );
       },
+    ),
     );
   }
 }

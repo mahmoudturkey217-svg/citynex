@@ -1,7 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/report_model.dart';
 import '../services/report_service.dart';
 import '../mock_data.dart';
+import '../screens/main/tickets/logic/ticket_cubit.dart';
+import '../screens/main/tickets/logic/ticket_state.dart';
+import 'package:geolocator/geolocator.dart';
+import '../services/location_service.dart';
+import '../core/utils/cache_helper.dart';
 
 class CreateReportScreen extends StatefulWidget {
   const CreateReportScreen({super.key});
@@ -17,9 +25,13 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
   final _reportService = ReportService();
 
   String _selectedCategory = 'Road';
-  bool _hasImage = false;
   bool _hasLocation = false;
   bool _isLoading = false;
+  double? _lat;
+  double? _lng;
+  
+  final ImagePicker _picker = ImagePicker();
+  File? _selectedImage;
 
   final List<String> _categories = [
     'Road',
@@ -38,55 +50,155 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadCachedLocation();
+  }
+
+  void _loadCachedLocation() {
+    final cachedLat = CacheHelper.getData(key: 'cached_report_lat');
+    final cachedLng = CacheHelper.getData(key: 'cached_report_lng');
+    if (cachedLat != null && cachedLng != null) {
+      setState(() {
+        _lat = cachedLat;
+        _lng = cachedLng;
+        _hasLocation = true;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _clearCachedLocation();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('📷 Image picker disabled in UI mode'),
-        backgroundColor: Colors.orange.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    setState(() => _hasImage = true);
+  void _clearCachedLocation() {
+    CacheHelper.removeData(key: 'cached_report_lat');
+    CacheHelper.removeData(key: 'cached_report_lng');
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking image: $e'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
   }
 
   Future<void> _getCurrentLocation() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('📍 Location mocked in UI mode'),
-        backgroundColor: Colors.blue.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    setState(() => _hasLocation = true);
+    setState(() => _isLoading = true);
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled')),
+        );
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Location permission permanently denied')),
+        );
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      setState(() {
+        _lat = position.latitude;
+        _lng = position.longitude;
+        _hasLocation = true;
+      });
+
+      CacheHelper.saveData(key: 'cached_report_lat', value: _lat);
+      CacheHelper.saveData(key: 'cached_report_lng', value: _lng);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '📍 Location captured: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
+            ),
+            backgroundColor: Colors.blue.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get location: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
 
-  Future<void> _submitReport() async {
+  void _submitReport() {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    // Simulate a brief loading delay in UI mode
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('✅ Report submitted successfully!'),
-        backgroundColor: Colors.green.shade400,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+
+    if (!_hasLocation || _lat == null || _lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please capture location first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    int categoryId = _categories.indexOf(_selectedCategory) + 1;
+
+    TicketCubit.get(context).createTicket(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      categoryId: categoryId.clamp(1, 5), // Ensure valid mock category ID
+      areaId: 1, // Mock area ID
+      lat: _lat!,
+      lng: _lng!,
+      priority: 'Medium', // Default priority
     );
-    Navigator.pop(context);
+
+    _clearCachedLocation();
   }
 
   @override
@@ -184,7 +296,7 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
               _buildSectionLabel('Photo'),
               const SizedBox(height: 8),
               // Image preview
-              if (_hasImage) ...[
+              if (_selectedImage != null) ...[
                 Container(
                   height: 120,
                   width: double.infinity,
@@ -193,13 +305,16 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.green.shade200),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 32),
-                        SizedBox(height: 6),
-                        Text('Photo selected', style: TextStyle(color: Colors.green)),
+                        const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                        const SizedBox(height: 6),
+                        Text('Image: ${_selectedImage!.path.split('/').last}', 
+                          style: const TextStyle(color: Colors.green, fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
                   ),
@@ -212,7 +327,7 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
                     child: _buildActionButton(
                       icon: Icons.photo_library_rounded,
                       label: 'Gallery',
-                      onTap: _pickImage,
+                      onTap: () => _pickImage(ImageSource.gallery),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -220,7 +335,7 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
                     child: _buildActionButton(
                       icon: Icons.camera_alt_rounded,
                       label: 'Camera',
-                      onTap: _pickImage,
+                      onTap: () => _pickImage(ImageSource.camera),
                     ),
                   ),
                 ],
@@ -230,47 +345,91 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
               // Location section
               _buildSectionLabel('Location'),
               const SizedBox(height: 8),
-              _buildActionButton(
-                icon: _hasLocation
-                    ? Icons.location_on_rounded
-                    : Icons.my_location_rounded,
-                label: _hasLocation
-                    ? 'Location captured (mock)'
-                    : 'Get Current Location',
-                onTap: _getCurrentLocation,
-              ),
+              if (_isLoading && !_hasLocation)
+                const Center(child: CircularProgressIndicator())
+              else
+                _buildActionButton(
+                  icon: _hasLocation
+                      ? Icons.location_on_rounded
+                      : Icons.my_location_rounded,
+                  label: _hasLocation
+                      ? 'Location captured'
+                      : 'Get Current Location',
+                  onTap: _getCurrentLocation,
+                ),
               const SizedBox(height: 32),
 
               // Submit
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitReport,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A237E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
+                child: BlocConsumer<TicketCubit, TicketState>(
+                  listener: (context, state) async {
+                    if (state is TicketActionSuccess) {
+                      if (state.message.contains('created') && _selectedImage != null && state.ticket != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Report created! Uploading image...')),
+                        );
+                        // Ticket created, now upload image
+                        TicketCubit.get(context).uploadTicketMedia(
+                          ticketId: state.ticket!.id,
+                          filePath: _selectedImage!.path,
+                        );
+                      } else {
+                        // All done (either created without image, or image finished uploading)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('✅ Report submitted successfully!'),
+                            backgroundColor: Colors.green.shade400,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
-                        )
-                      : const Text(
-                          'Submit Report',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        );
+                        if (mounted) Navigator.pop(context);
+                      }
+                    } else if (state is TicketActionError) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: ${state.error}'),
+                          backgroundColor: Colors.red.shade600,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
+                      );
+                    }
+                  },
+                  builder: (context, state) {
+                    final isLoading = state is TicketActionLoading;
+                    return ElevatedButton(
+                      onPressed: isLoading ? null : _submitReport,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A237E),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Submit Report',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 24),

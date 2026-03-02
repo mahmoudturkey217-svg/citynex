@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/report_model.dart';
-import 'package:intl/intl.dart';
-import '../mock_data.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../core/models/ticket_model.dart';
+import '../screens/main/tickets/logic/ticket_cubit.dart';
+import '../screens/main/tickets/logic/ticket_state.dart';
 
 class TicketsScreen extends StatefulWidget {
   const TicketsScreen({super.key});
@@ -15,11 +16,11 @@ class _TicketsScreenState extends State<TicketsScreen> {
 
   final List<String> _filters = [
     'All',
-    'Pending',
     'Open',
-    'In Progress',
-    'Resolved',
-    'Closed',
+    'Assigned',
+    'In_Progress',
+    'Fixed',
+    'Verified',
   ];
 
   @override
@@ -54,7 +55,14 @@ class _TicketsScreenState extends State<TicketsScreen> {
                 final filter = _filters[index];
                 final isSelected = _selectedFilter == filter;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedFilter = filter),
+                  onTap: () {
+                    setState(() => _selectedFilter = filter);
+                    if (filter == 'All') {
+                      TicketCubit.get(context).getTickets();
+                    } else {
+                      TicketCubit.get(context).getTickets(status: filter);
+                    }
+                  },
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
@@ -70,7 +78,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                       ),
                     ),
                     child: Text(
-                      filter,
+                      filter.replaceAll('_', ' '),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -86,24 +94,45 @@ class _TicketsScreenState extends State<TicketsScreen> {
 
           // Tickets list
           Expanded(
-            child: Builder(
-              builder: (context) {
-                var reports = List.of(MockReports.userReports);
-                if (_selectedFilter != 'All') {
-                  reports = reports
-                      .where((r) => r.status == _selectedFilter)
-                      .toList();
+            child: BlocBuilder<TicketCubit, TicketState>(
+              builder: (context, state) {
+                if (state is TicketLoading) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-                if (reports.isEmpty) {
-                  return _buildEmptyState();
+
+                if (state is TicketError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                        const SizedBox(height: 12),
+                        Text(state.error, textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () => TicketCubit.get(context).getTickets(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
                 }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: reports.length,
-                  itemBuilder: (context, index) {
-                    return _buildTicketItem(reports[index]);
-                  },
-                );
+
+                if (state is TicketSuccess) {
+                  final tickets = state.tickets;
+                  if (tickets.isEmpty) {
+                    return _buildEmptyState();
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: tickets.length,
+                    itemBuilder: (context, index) {
+                      return _buildTicketItem(tickets[index]);
+                    },
+                  );
+                }
+
+                return _buildEmptyState();
               },
             ),
           ),
@@ -112,25 +141,27 @@ class _TicketsScreenState extends State<TicketsScreen> {
     );
   }
 
-  Widget _buildTicketItem(ReportModel report) {
+  Widget _buildTicketItem(TicketModel ticket) {
     Color statusColor;
     IconData statusIcon;
-    switch (report.status) {
+    switch (ticket.status) {
       case 'Open':
         statusColor = const Color(0xFF4A90D9);
         statusIcon = Icons.lock_open_rounded;
         break;
+      case 'In_Progress':
       case 'In Progress':
         statusColor = const Color(0xFFF39C12);
         statusIcon = Icons.autorenew_rounded;
         break;
-      case 'Resolved':
+      case 'Fixed':
+      case 'Verified':
         statusColor = const Color(0xFF2ECC71);
         statusIcon = Icons.check_circle;
         break;
-      case 'Closed':
-        statusColor = Colors.grey;
-        statusIcon = Icons.cancel_outlined;
+      case 'Assigned':
+        statusColor = Colors.purple;
+        statusIcon = Icons.person_outline;
         break;
       default:
         statusColor = Colors.orange;
@@ -139,7 +170,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
 
     return GestureDetector(
       onTap: () =>
-          Navigator.pushNamed(context, '/report-details', arguments: report),
+          Navigator.pushNamed(context, '/report-details', arguments: ticket),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -156,27 +187,17 @@ class _TicketsScreenState extends State<TicketsScreen> {
         ),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: report.imageUrl.isNotEmpty
-                  ? Image.network(
-                      report.imageUrl,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 56, height: 56,
-                        color: Colors.grey.shade100,
-                        child: const Icon(Icons.broken_image,
-                            color: Colors.grey, size: 22),
-                      ),
-                    )
-                  : Container(
-                      width: 56, height: 56,
-                      color: Colors.grey.shade100,
-                      child: const Icon(Icons.image,
-                          color: Colors.grey, size: 22),
-                    ),
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D3B66).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _getCategoryIcon(ticket.category.name),
+                color: const Color(0xFF0D3B66),
+                size: 26,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -184,7 +205,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    report.title,
+                    ticket.title,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -209,7 +230,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                             Icon(statusIcon, size: 11, color: statusColor),
                             const SizedBox(width: 4),
                             Text(
-                              report.status,
+                              ticket.status.replaceAll('_', ' '),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -219,9 +240,26 @@ class _TicketsScreenState extends State<TicketsScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _getPriorityColor(ticket.priority).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          ticket.priority,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: _getPriorityColor(ticket.priority),
+                          ),
+                        ),
+                      ),
                       const Spacer(),
                       Text(
-                        DateFormat('MMM d, yyyy').format(report.createdAt),
+                        ticket.createdAt.length >= 10 ? ticket.createdAt.substring(0, 10) : ticket.createdAt,
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.grey.shade400,
@@ -238,6 +276,38 @@ class _TicketsScreenState extends State<TicketsScreen> {
         ),
       ),
     );
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'Critical':
+        return Colors.red;
+      case 'High':
+        return Colors.orange;
+      case 'Medium':
+        return Colors.amber.shade700;
+      case 'Low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'road damage':
+        return Icons.warning_rounded;
+      case 'public safety':
+        return Icons.shield_outlined;
+      case 'water':
+        return Icons.water_drop_outlined;
+      case 'electricity':
+        return Icons.electric_bolt_outlined;
+      case 'waste':
+        return Icons.delete_outline;
+      default:
+        return Icons.report_outlined;
+    }
   }
 
   Widget _buildEmptyState() {

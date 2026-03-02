@@ -49,13 +49,21 @@ class DioHelper {
     Map<String, dynamic>? query,
     required dynamic data,
     String? token,
+    bool isMultipart = false,
   }) async {
-    dio.options.headers = {
-      'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-
-    return dio.post(url, queryParameters: query, data: data);
+    return dio.post(
+      url,
+      queryParameters: query,
+      data: data,
+      options: Options(
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        // For FormData, Dio automatically manages boundary if Content-Type is multipart/form-data
+        contentType: isMultipart ? 'multipart/form-data' : 'application/json',
+      ),
+    );
   }
 
   static Future<Response> putData({

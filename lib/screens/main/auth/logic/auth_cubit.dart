@@ -58,4 +58,48 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthLoginError(error: e.toString()));
     }
   }
+
+  Future<void> forgotPassword({required String email}) async {
+    emit(AuthForgotPasswordLoading());
+    try {
+      final response = await authRepository.forgotPassword(email: email);
+
+      if (response.success == true) {
+        emit(AuthForgotPasswordSuccess(
+            message: response.message ?? 'Password reset link sent!'));
+      } else {
+        emit(AuthForgotPasswordError(
+            error: response.message ?? 'Failed to send reset link'));
+      }
+    } catch (e) {
+      emit(AuthForgotPasswordError(error: e.toString()));
+    }
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    emit(AuthResetPasswordLoading());
+    try {
+      final response = await authRepository.resetPassword(
+        email: email,
+        otp: otp,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+
+      if (response.success == true) {
+        emit(AuthResetPasswordSuccess(
+            message: response.message ?? 'Password reset successful!'));
+      } else {
+        emit(AuthResetPasswordError(
+            error: response.message ?? 'Failed to reset password'));
+      }
+    } catch (e) {
+      emit(AuthResetPasswordError(error: e.toString()));
+    }
+  }
 }

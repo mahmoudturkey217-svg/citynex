@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../mock_data.dart';
+import '../core/utils/cache_helper.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -13,14 +16,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   bool _isLoading = false;
   bool _isSaving = false;
-  String _email = MockUser.email;
-  String _role = MockUser.role;
-  String _originalName = MockUser.name;
+  String _email = CacheHelper.getData(key: 'user_email') ?? MockUser.email;
+  String _role = CacheHelper.getData(key: 'user_role') ?? MockUser.role;
+  String _originalName = CacheHelper.getData(key: 'user_name') ?? MockUser.name;
+
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = MockUser.name;
+    _nameController.text = CacheHelper.getData(key: 'user_name') ?? MockUser.name;
   }
 
   @override
@@ -31,6 +37,70 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   Future<void> _loadUserData() async {
     // UI mode: use mock data instantly
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(source: source, imageQuality: 80);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
+    }
+  }
+
+  void _showImagePickerModal() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Change Profile Picture',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              if (_selectedImage != null)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedImage = null);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _saveChanges() async {
@@ -47,8 +117,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       return;
     }
     setState(() => _isSaving = true);
+    
+    // Simulate API call
     await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Save to local cache
+    await CacheHelper.saveData(key: 'user_name', value: newName);
+    
+    if (_selectedImage != null) {
+      // Typically you would upload to an API here and get a URL.
+      // For now, we save the local path to cache to simulate a profile picture update.
+      await CacheHelper.saveData(key: 'user_avatar_local', value: _selectedImage!.path);
+    }
+    
     if (!mounted) return;
+    
+    setState(() {
+      _isSaving = false;
+      _originalName = newName;
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Row(
@@ -63,7 +151,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-    Navigator.pop(context);
+    Navigator.pop(context, true); // Return true to indicate profile was updated
   }
 
   @override
@@ -90,18 +178,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   Center(
                     child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 48,
-                          backgroundColor: const Color(0xFF0D2137).withOpacity(0.1),
-                          child: Text(
-                            _nameController.text.isNotEmpty
-                                ? _nameController.text[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0D2137),
-                            ),
+                        GestureDetector(
+                          onTap: _showImagePickerModal,
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 48,
+                                backgroundColor: const Color(0xFF0D2137).withOpacity(0.1),
+                                backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+                                child: _selectedImage == null
+                                    ? Text(
+                                        _nameController.text.isNotEmpty
+                                            ? _nameController.text[0].toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0D2137),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0D2137),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 8),

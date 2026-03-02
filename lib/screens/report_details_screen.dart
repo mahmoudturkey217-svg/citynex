@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
-import '../models/report_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../core/models/ticket_model.dart';
 import 'package:intl/intl.dart';
-import '../mock_data.dart';
+import '../core/utils/cache_helper.dart';
+import 'main/tickets/logic/ticket_cubit.dart';
+import 'main/tickets/logic/ticket_state.dart';
 
-class ReportDetailsScreen extends StatelessWidget {
+class ReportDetailsScreen extends StatefulWidget {
   const ReportDetailsScreen({super.key});
 
   @override
+  State<ReportDetailsScreen> createState() => _ReportDetailsScreenState();
+}
+
+class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
+  @override
   Widget build(BuildContext context) {
-    final report = ModalRoute.of(context)!.settings.arguments as ReportModel;
-    final isPending = report.status == 'Pending';
+    final report = ModalRoute.of(context)!.settings.arguments as TicketModel;
+    final isPending = report.status == 'Open';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -22,21 +30,10 @@ class ReportDetailsScreen extends StatelessWidget {
             backgroundColor: const Color(0xFF1A237E),
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
-              background: report.imageUrl.isNotEmpty
-                  ? Image.network(
-                      report.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.broken_image,
-                            size: 64, color: Colors.grey),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.grey.shade300,
-                      child: const Icon(Icons.image,
-                          size: 64, color: Colors.grey),
-                    ),
+              background: Container(
+                color: Colors.grey.shade300,
+                child: const Icon(Icons.image, size: 64, color: Colors.grey),
+              ),
             ),
           ),
 
@@ -75,7 +72,7 @@ class ReportDetailsScreen extends StatelessWidget {
                                 size: 16, color: Color(0xFF1A237E)),
                             const SizedBox(width: 6),
                             Text(
-                              report.category,
+                              report.category?.name ?? 'General',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF1A237E),
@@ -144,7 +141,7 @@ class ReportDetailsScreen extends StatelessWidget {
                     icon: Icons.location_on_outlined,
                     title: 'Location',
                     child: Text(
-                      'Lat: ${report.latitude.toStringAsFixed(6)}\nLng: ${report.longitude.toStringAsFixed(6)}',
+                      'Lat: ${report.lat.toStringAsFixed(6)}\nLng: ${report.lng.toStringAsFixed(6)}\nArea: ${report.area.name}',
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey.shade700,
@@ -158,8 +155,9 @@ class ReportDetailsScreen extends StatelessWidget {
                     icon: Icons.calendar_today_outlined,
                     title: 'Reported On',
                     child: Text(
-                      DateFormat('EEEE, MMMM d, yyyy – hh:mm a')
-                          .format(report.createdAt),
+                      report.createdAt != null 
+                        ? DateFormat('EEEE, MMMM d, yyyy – hh:mm a').format(DateTime.parse(report.createdAt!))
+                        : 'Unknown',
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey.shade700,
@@ -168,9 +166,8 @@ class ReportDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Admin actions (shown based on mock role)
-                  if (MockUser.role == 'admin')
-                    _buildAdminActions(context, report),
+                  // Vote / Admin actions
+                  _buildActions(context, report),
                 ],
               ),
             ),
@@ -223,54 +220,119 @@ class ReportDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAdminActions(BuildContext context, ReportModel report) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: () => _showChangeStatusDialog(context, report),
-            icon: const Icon(Icons.edit_note_rounded),
-            label: const Text(
-              'Change Status',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A237E),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+  Widget _buildActions(BuildContext context, TicketModel report) {
+    final role = CacheHelper.getData(key: 'role') ?? 'citizen';
+
+    if (role == 'admin') {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: () => _showChangeStatusDialog(context, report),
+              icon: const Icon(Icons.edit_note_rounded),
+              label: const Text(
+                'Change Status',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A237E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: () => _showDeleteDialog(context, report),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text(
-              'Delete Report',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () => _showDeleteDialog(context, report),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text(
+                'Delete Report',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
+        ],
+      );
+    } else {
+      // Citizen role: Vote / Confirm action
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: BlocConsumer<TicketCubit, TicketState>(
+          listener: (context, state) {
+            if (state is TicketActionSuccess && state.message.contains('confirm')) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('✅ Ticket confirmed successfully!'),
+                  backgroundColor: Colors.green.shade400,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+              Navigator.pop(context); // Optional: Pop back to list
+            } else if (state is TicketActionError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: ${state.error}'),
+                  backgroundColor: Colors.red.shade600,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            final isLoading = state is TicketActionLoading;
+            return ElevatedButton.icon(
+              onPressed: isLoading ? null : () {
+                if (report.id != null) {
+                  TicketCubit.get(context).confirmTicket(report.id!);
+                }
+              },
+              icon: isLoading ? const SizedBox() : const Icon(Icons.thumb_up_alt_outlined),
+              label: isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'Confirm / Vote (${report.confirmedCount ?? 0})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A237E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            );
+          },
         ),
-      ],
-    );
+      );
+    }
   }
 
-  void _showChangeStatusDialog(BuildContext context, ReportModel report) {
-    String selectedStatus = report.status;
+  void _showChangeStatusDialog(BuildContext context, TicketModel report) {
+    String selectedStatus = report.status ?? 'Open';
     showDialog(
       context: context,
       builder: (ctx) {
@@ -355,7 +417,7 @@ class ReportDetailsScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, ReportModel report) {
+  void _showDeleteDialog(BuildContext context, TicketModel report) {
     showDialog(
       context: context,
       builder: (ctx) {

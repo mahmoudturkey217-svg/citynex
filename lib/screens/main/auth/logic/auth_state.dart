@@ -29,3 +29,33 @@ class AuthLoginError extends AuthState {
 
   AuthLoginError({required this.error});
 }
+
+// ─── Forgot Password States ───
+class AuthForgotPasswordLoading extends AuthState {}
+
+class AuthForgotPasswordSuccess extends AuthState {
+  final String message;
+
+  AuthForgotPasswordSuccess({required this.message});
+}
+
+class AuthForgotPasswordError extends AuthState {
+  final String error;
+
+  AuthForgotPasswordError({required this.error});
+}
+
+// ─── Reset Password States ───
+class AuthResetPasswordLoading extends AuthState {}
+
+class AuthResetPasswordSuccess extends AuthState {
+  final String message;
+
+  AuthResetPasswordSuccess({required this.message});
+}
+
+class AuthResetPasswordError extends AuthState {
+  final String error;
+
+  AuthResetPasswordError({required this.error});
+}

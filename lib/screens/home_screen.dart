@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import '../models/report_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'tickets_screen.dart';
 import 'alerts_screen.dart';
 import 'profile_screen.dart';
 import '../mock_data.dart';
+import '../core/utils/cache_helper.dart';
+import '../core/models/ticket_model.dart';
+import '../screens/main/tickets/logic/ticket_cubit.dart';
+import '../screens/main/tickets/logic/ticket_state.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,11 +19,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentNavIndex = 0;
-  final String _userName = MockUser.name;
+  final String _userName = CacheHelper.getData(key: 'user_name') ?? MockUser.name;
 
   @override
   void initState() {
     super.initState();
+    TicketCubit.get(context).getTickets();
   }
 
   String _getGreeting() {
@@ -184,29 +189,60 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   //        HOME TAB CONTENT
   // ══════════════════════════════
   Widget _buildHomeContent() {
-    final reports = MockReports.userReports;
-    final pending = reports.where((r) => r.status == 'Pending').length;
-    final open = reports.where((r) => r.status == 'Open').length;
-    final inProgress = reports.where((r) => r.status == 'In Progress').length;
-    final resolved = reports.where((r) => r.status == 'Resolved').length;
-    final total = reports.length;
-    final resolvedPercent = total > 0 ? (resolved / total * 100).round() : 0;
-    final remainingPercent = total > 0 ? 100 - resolvedPercent : 0;
+    return BlocConsumer<TicketCubit, TicketState>(
+      listener: (context, state) {},
+      builder: (context, state) {
+        List<TicketModel> tickets = [];
+        if (state is TicketSuccess) {
+          tickets = state.tickets;
+        }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          _buildQuickActionsSection(),
-          _buildActivitySection(
-            total, pending, open, inProgress, resolved,
-            resolvedPercent, remainingPercent,
+        final open = tickets.where((t) => t.status == 'Open').length;
+        final assigned = tickets.where((t) => t.status == 'Assigned').length;
+        final inProgress = tickets.where((t) => t.status == 'In_Progress' || t.status == 'In Progress').length;
+        final resolved = tickets.where((t) => t.status == 'Fixed' || t.status == 'Verified').length;
+        final total = tickets.length;
+        final resolvedPercent = total > 0 ? (resolved / total * 100).round() : 0;
+        final remainingPercent = total > 0 ? 100 - resolvedPercent : 0;
+
+        if (state is TicketLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is TicketError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                const SizedBox(height: 12),
+                Text((state as TicketError).error, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => TicketCubit.get(context).getTickets(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              _buildQuickActionsSection(),
+              _buildActivitySection(
+                total, assigned, open, inProgress, resolved,
+                resolvedPercent, remainingPercent,
+              ),
+              _buildRecentTicketsSection(tickets),
+              const SizedBox(height: 24),
+            ],
           ),
-          _buildRecentTicketsSection(reports),
-          const SizedBox(height: 24),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -649,7 +685,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ─── RECENT TICKETS ───
-  Widget _buildRecentTicketsSection(List<ReportModel> reports) {
+  Widget _buildRecentTicketsSection(List<TicketModel> tickets) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
@@ -666,7 +702,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   color: Color(0xFF1A1D26),
                 ),
               ),
-              if (reports.isNotEmpty)
+              if (tickets.isNotEmpty)
                 GestureDetector(
                   onTap: () => setState(() => _currentNavIndex = 1),
                   child: const Text(
@@ -681,30 +717,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
           const SizedBox(height: 12),
-          if (reports.isEmpty)
+          if (tickets.isEmpty)
             _buildEmptyState()
           else
-            ...reports.take(5).map((r) => _buildTicketCard(r)),
+            ...tickets.take(5).map((t) => _buildTicketCard(t)),
         ],
       ),
     );
   }
 
-  Widget _buildTicketCard(ReportModel report) {
+  Widget _buildTicketCard(TicketModel ticket) {
     Color statusColor;
     IconData statusIcon;
-    switch (report.status) {
+    switch (ticket.status) {
       case 'Open':
         statusColor = const Color(0xFF4A90D9);
         statusIcon = Icons.lock_open_rounded;
         break;
+      case 'In_Progress':
       case 'In Progress':
         statusColor = const Color(0xFFF39C12);
         statusIcon = Icons.autorenew_rounded;
         break;
-      case 'Resolved':
+      case 'Fixed':
+      case 'Verified':
         statusColor = const Color(0xFF2ECC71);
         statusIcon = Icons.check_circle;
+        break;
+      case 'Assigned':
+        statusColor = Colors.purple;
+        statusIcon = Icons.person_outline;
         break;
       default:
         statusColor = Colors.orange;
@@ -712,8 +754,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamed(context, '/report-details', arguments: report),
+      onTap: () => Navigator.pushNamed(context, '/report-details', arguments: ticket),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -730,26 +771,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: report.imageUrl.isNotEmpty
-                  ? Image.network(
-                      report.imageUrl,
-                      width: 60, height: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 60, height: 60,
-                        color: Colors.grey.shade100,
-                        child: const Icon(Icons.broken_image,
-                            color: Colors.grey, size: 24),
-                      ),
-                    )
-                  : Container(
-                      width: 60, height: 60,
-                      color: Colors.grey.shade100,
-                      child: const Icon(Icons.image,
-                          color: Colors.grey, size: 24),
-                    ),
+            // Category icon instead of image
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D3B66).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _getCategoryIcon(ticket.category.name),
+                color: const Color(0xFF0D3B66),
+                size: 28,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -757,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    report.title,
+                    ticket.title,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -768,7 +801,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    report.description,
+                    ticket.description,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -777,14 +810,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: const Color(0xFF0D3B66).withOpacity(0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          report.category,
+                          ticket.category.name,
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -794,8 +826,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
@@ -806,7 +837,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             Icon(statusIcon, size: 11, color: statusColor),
                             const SizedBox(width: 4),
                             Text(
-                              report.status,
+                              ticket.status,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -818,9 +849,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       const Spacer(),
                       Text(
-                        DateFormat('MMM d').format(report.createdAt),
-                        style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade400),
+                        ticket.createdAt.length >= 10 ? ticket.createdAt.substring(0, 10) : ticket.createdAt,
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                       ),
                     ],
                   ),
@@ -831,6 +861,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'road damage':
+        return Icons.warning_rounded;
+      case 'public safety':
+        return Icons.shield_outlined;
+      case 'water':
+        return Icons.water_drop_outlined;
+      case 'electricity':
+        return Icons.electric_bolt_outlined;
+      case 'waste':
+        return Icons.delete_outline;
+      default:
+        return Icons.report_outlined;
+    }
   }
 
   Widget _buildEmptyState() {
