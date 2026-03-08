@@ -191,6 +191,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildHomeContent() {
     return BlocConsumer<TicketCubit, TicketState>(
       listener: (context, state) {},
+      buildWhen: (previous, current) {
+        return current is TicketLoading ||
+               current is TicketSuccess ||
+               current is TicketError;
+      },
       builder: (context, state) {
         List<TicketModel> tickets = [];
         if (state is TicketSuccess) {

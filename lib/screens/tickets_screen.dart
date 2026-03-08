@@ -95,6 +95,11 @@ class _TicketsScreenState extends State<TicketsScreen> {
           // Tickets list
           Expanded(
             child: BlocBuilder<TicketCubit, TicketState>(
+              buildWhen: (previous, current) {
+                return current is TicketLoading ||
+                       current is TicketSuccess ||
+                       current is TicketError;
+              },
               builder: (context, state) {
                 if (state is TicketLoading) {
                   return const Center(child: CircularProgressIndicator());
@@ -193,11 +198,26 @@ class _TicketsScreenState extends State<TicketsScreen> {
                 color: const Color(0xFF0D3B66).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                _getCategoryIcon(ticket.category.name),
-                color: const Color(0xFF0D3B66),
-                size: 26,
-              ),
+              child: ticket.media != null && ticket.media!.isNotEmpty && ticket.media!.first.mediaUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        ticket.media!.first.mediaUrl!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          _getCategoryIcon(ticket.category.name),
+                          color: const Color(0xFF0D3B66),
+                          size: 26,
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      _getCategoryIcon(ticket.category.name),
+                      color: const Color(0xFF0D3B66),
+                      size: 26,
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(

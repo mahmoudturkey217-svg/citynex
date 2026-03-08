@@ -1,13 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import '../core/utils/cache_helper.dart';
 
-class LocationPermissionScreen extends StatelessWidget {
+class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({super.key});
 
+  @override
+  State<LocationPermissionScreen> createState() => _LocationPermissionScreenState();
+}
+
+class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
+  bool _isLoading = false;
+
   Future<void> _enableLocation(BuildContext context) async {
-    // UI mode: just navigate to home
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (context.mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+    setState(() => _isLoading = true);
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled')),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Location permission permanently denied')),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      // Cache the location app-wide
+      await CacheHelper.saveData(key: 'cached_latitude', value: position.latitude);
+      await CacheHelper.saveData(key: 'cached_longitude', value: position.longitude);
+
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get location: $e')),
+      );
+      setState(() => _isLoading = false);
     }
   }
 
@@ -99,7 +159,7 @@ class LocationPermissionScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: () => _enableLocation(context),
+                      onPressed: _isLoading ? null : () => _enableLocation(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0D3B66),
                         foregroundColor: Colors.white,
@@ -108,13 +168,20 @@ class LocationPermissionScreen extends StatelessWidget {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Turn on Current location',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: _isLoading 
+                          ? const SizedBox(
+                                width: 24, height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5, color: Colors.white,
+                                ),
+                              )
+                          : const Text(
+                              'Turn on Current location',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
 

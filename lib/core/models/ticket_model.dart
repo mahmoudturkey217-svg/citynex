@@ -1,3 +1,5 @@
+import 'ticket_media_model.dart';
+
 class TicketModel {
   final int id;
   final String title;
@@ -12,6 +14,7 @@ class TicketModel {
   final TicketArea area;
   final String createdAt;
   final String updatedAt;
+  final List<TicketMediaModel>? media;
 
   TicketModel({
     required this.id,
@@ -27,18 +30,40 @@ class TicketModel {
     required this.area,
     required this.createdAt,
     required this.updatedAt,
+    this.media,
   });
+
+  /// Safely parse a value that may be a String, num, or null into a double.
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
 
   factory TicketModel.fromJson(Map<String, dynamic> json) {
     final location = json['location'] ?? {};
+    
+    // Parse media list if present — skip individual bad items
+    List<TicketMediaModel> mediaList = [];
+    if (json['media'] != null && json['media'] is List) {
+      for (var item in json['media'] as List) {
+        try {
+          mediaList.add(TicketMediaModel.fromJson(item));
+        } catch (e) {
+          print('⚠️ Skipping bad media item in ticket ${json['id']}: $e');
+        }
+      }
+    }
+
     return TicketModel(
       id: json['id'] ?? 0,
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       priority: json['priority'] ?? 'Low',
       status: json['status'] ?? 'Open',
-      lat: (location['lat'] ?? 0.0).toDouble(),
-      lng: (location['lng'] ?? 0.0).toDouble(),
+      lat: _parseDouble(location['lat']),
+      lng: _parseDouble(location['lng']),
       confirmedCount: json['confirmed_count'] ?? 0,
       emergencyFlag: json['emergency_flag'] ?? false,
       category: json['category'] != null
@@ -49,7 +74,29 @@ class TicketModel {
           : TicketArea(id: 0, name: 'Unknown'),
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
+      media: mediaList ?? [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'priority': priority,
+      'status': status,
+      'location': {
+        'lat': lat,
+        'lng': lng,
+      },
+      'confirmed_count': confirmedCount,
+      'emergency_flag': emergencyFlag,
+      'category': category.toJson(),
+      'area': area.toJson(),
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      // media serialization omitted for brevity as it's mostly used for reading
+    };
   }
 }
 
@@ -65,6 +112,13 @@ class TicketCategory {
       name: json['name'] ?? 'Unknown',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
 }
 
 class TicketArea {
@@ -79,6 +133,13 @@ class TicketArea {
       name: json['name'] ?? 'Unknown',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
 }
 
 class TicketsResponseModel {
@@ -88,13 +149,27 @@ class TicketsResponseModel {
   TicketsResponseModel({required this.success, required this.data});
 
   factory TicketsResponseModel.fromJson(Map<String, dynamic> json) {
+    // Parse each ticket individually — skip bad ones instead of crashing the whole list
+    final List<TicketModel> tickets = [];
+    if (json['data'] != null && json['data'] is List) {
+      for (var item in json['data'] as List) {
+        try {
+          tickets.add(TicketModel.fromJson(item));
+        } catch (e) {
+          print('⚠️ Skipping bad ticket (id=${item['id']}): $e');
+        }
+      }
+    }
     return TicketsResponseModel(
       success: json['success'] ?? false,
-      data: json['data'] != null
-          ? (json['data'] as List)
-              .map((e) => TicketModel.fromJson(e))
-              .toList()
-          : [],
+      data: tickets,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'data': data.map((e) => e.toJson()).toList(),
+    };
   }
 }

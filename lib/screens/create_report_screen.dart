@@ -9,7 +9,6 @@ import '../screens/main/tickets/logic/ticket_cubit.dart';
 import '../screens/main/tickets/logic/ticket_state.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/location_service.dart';
-import '../core/utils/cache_helper.dart';
 
 class CreateReportScreen extends StatefulWidget {
   const CreateReportScreen({super.key});
@@ -50,34 +49,10 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
   };
 
   @override
-  void initState() {
-    super.initState();
-    _loadCachedLocation();
-  }
-
-  void _loadCachedLocation() {
-    final cachedLat = CacheHelper.getData(key: 'cached_report_lat');
-    final cachedLng = CacheHelper.getData(key: 'cached_report_lng');
-    if (cachedLat != null && cachedLng != null) {
-      setState(() {
-        _lat = cachedLat;
-        _lng = cachedLng;
-        _hasLocation = true;
-      });
-    }
-  }
-
-  @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _clearCachedLocation();
     super.dispose();
-  }
-
-  void _clearCachedLocation() {
-    CacheHelper.removeData(key: 'cached_report_lat');
-    CacheHelper.removeData(key: 'cached_report_lng');
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -102,66 +77,38 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
     setState(() => _isLoading = true);
 
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location services are disabled')),
-        );
-        return;
-      }
+      final loc = await LocationService.getCurrentLocation();
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission denied')),
-          );
-          return;
-        }
-      }
+      if (!mounted) return;
 
-      if (permission == LocationPermission.deniedForever) {
-        if (!mounted) return;
+      if (loc == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Location permission permanently denied')),
+            content: Text('Unable to get location. Please check permissions.'),
+          ),
         );
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
       setState(() {
-        _lat = position.latitude;
-        _lng = position.longitude;
+        _lat = loc['lat'];
+        _lng = loc['lng'];
         _hasLocation = true;
       });
 
-      CacheHelper.saveData(key: 'cached_report_lat', value: _lat);
-      CacheHelper.saveData(key: 'cached_report_lng', value: _lng);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '📍 Location captured: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
-            ),
-            backgroundColor: Colors.blue.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '📍 Location captured: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
           ),
-        );
-      }
+          backgroundColor: Colors.blue.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,8 +144,6 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
       lng: _lng!,
       priority: 'Medium', // Default priority
     );
-
-    _clearCachedLocation();
   }
 
   @override

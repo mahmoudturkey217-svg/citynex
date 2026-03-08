@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../api/dio_helper.dart';
 import '../api/api_endpoints.dart';
 import '../models/ticket_model.dart';
+import '../models/ticket_media_model.dart';
 import '../utils/cache_helper.dart';
 import '../api/error_handler.dart';
 import 'package:http_parser/http_parser.dart';
@@ -52,24 +53,39 @@ class TicketRepository {
   }) async {
     try {
       final token = CacheHelper.getData(key: 'token');
-      final data = {
+
+      // Debug: verify location values before sending
+      print('📍 Sending location: lat=$lat, lng=$lng');
+
+      // Send location as flat fields so the backend can parse them correctly.
+      // Using location_lat / location_lng instead of nested location[lat] / location[lng].
+      final formData = FormData.fromMap({
         'title': title,
         'description': description,
-        'category_id': categoryId,
-        'area_id': areaId,
-        'latitude': lat,
-        'longitude': lng,
+        'category_id': categoryId.toString(),
+        'area_id': areaId.toString(),
+        'location_lat': lat.toStringAsFixed(8),
+        'location_lng': lng.toStringAsFixed(8),
         'priority': priority,
-        'emergency_flag': emergencyFlag ? 1 : 0,
-      };
+        'emergency_flag': emergencyFlag ? '1' : '0',
+      });
 
       final response = await DioHelper.postData(
         url: ApiEndpoints.citizenTickets,
-        data: data,
+        data: formData,
         token: token,
+        isMultipart: true,
       );
 
-      return TicketModel.fromJson(response.data['data']);
+      // The create-ticket response nests the ticket under data.ticket
+      final data = response.data['data'];
+      final ticketJson = data is Map && data.containsKey('ticket')
+          ? data['ticket']
+          : data;
+      final ticket = TicketModel.fromJson(ticketJson);
+      // Debug: verify location values from API response
+      print('📍 Response location: lat=${ticket.lat}, lng=${ticket.lng}');
+      return ticket;
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -119,4 +135,65 @@ class TicketRepository {
       throw ErrorHandler.handle(e);
     }
   }
+
+  /// Fetch a single ticket's details (which includes its media array).
+  Future<Map<String, dynamic>> getTicketDetails(int ticketId) async {
+    try {
+      final token = CacheHelper.getData(key: 'token');
+      final response = await DioHelper.getData(
+        url: '${ApiEndpoints.citizenTickets}/$ticketId',
+        token: token,
+      );
+
+      final data = response.data['data'];
+      // The response may nest the ticket under 'ticket' key or return it directly
+      final ticketJson = data is Map && data.containsKey('ticket')
+          ? data['ticket']
+          : data;
+
+      final ticket = TicketModel.fromJson(ticketJson);
+
+      // Parse media list if present
+      final List<TicketMediaModel> mediaList = [];
+      final mediaJson = ticketJson['media'] ?? data['media'];
+      if (mediaJson != null && mediaJson is List) {
+        for (var item in mediaJson) {
+          mediaList.add(TicketMediaModel.fromJson(item));
+        }
+      }
+
+      return {'ticket': ticket, 'media': mediaList};
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get a signed URL for a specific media item.
+  Future<String> getMediaSignedUrl(int ticketId, int mediaId) async {
+    try {
+      final token = CacheHelper.getData(key: 'token');
+      final response = await DioHelper.getData(
+        url: '${ApiEndpoints.citizenTickets}/$ticketId/media/$mediaId/url',
+        query: {'expires_in': 3600},
+        token: token,
+      );
+
+      return response.data['data']['url'] ?? '';
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  Future<void> deleteTicketMedia(int ticketId, int mediaId) async {
+    try {
+      final token = CacheHelper.getData(key: 'token');
+      await DioHelper.deleteData(
+        url: '${ApiEndpoints.citizenTickets}/$ticketId/media/$mediaId',
+        token: token,
+      );
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
 }
+

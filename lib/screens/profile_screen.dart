@@ -28,6 +28,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     return BlocBuilder<TicketCubit, TicketState>(
+      buildWhen: (previous, current) {
+        return current is TicketLoading ||
+               current is TicketSuccess ||
+               current is TicketError;
+      },
       builder: (context, state) {
         int totalTickets = 0;
         int resolvedTickets = 0;

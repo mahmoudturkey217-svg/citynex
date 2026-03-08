@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/utils/cache_helper.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -40,6 +41,26 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
+    // First check location permissions
+    bool hasPermission = false;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+          hasPermission = true;
+        }
+      }
+    } catch (e) {
+      // Ignore initial test failures
+    }
+
+    if (!hasPermission) {
+      Navigator.pushReplacementNamed(context, '/location-permission');
+      return;
+    }
+
+    // Permission granted, proceed normally
     final token = CacheHelper.getData(key: 'token');
     if (token == null || token == '') {
       Navigator.pushReplacementNamed(context, '/onboarding');
