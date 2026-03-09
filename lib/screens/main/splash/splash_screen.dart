@@ -41,7 +41,17 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    // First check location permissions
+    // Check authentication first
+    final token = CacheHelper.getData(key: 'token');
+    final isAuthenticated = token != null && token != '';
+
+    if (!isAuthenticated) {
+      // If not logged in, go directly to onboarding/login
+      Navigator.pushReplacementNamed(context, '/onboarding');
+      return;
+    }
+
+    // Only check location permissions if the user is logged in
     bool hasPermission = false;
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -60,16 +70,8 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // Permission granted, proceed normally
-    final token = CacheHelper.getData(key: 'token');
-    if (token == null || token == '') {
-      Navigator.pushReplacementNamed(context, '/onboarding');
-    } else {
-      Navigator.pushReplacementNamed(
-        context,
-        '/home',
-      ); // Navigating to home screen
-    }
+    // Permission granted and authenticated, proceed to home
+    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override

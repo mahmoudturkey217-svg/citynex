@@ -60,7 +60,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
       await CacheHelper.saveData(key: 'cached_longitude', value: position.longitude);
 
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        _navigateToNextScreen(context);
       }
     } catch (e) {
       if (!context.mounted) return;
@@ -71,8 +71,14 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
     }
   }
 
-  void _navigateToHome(BuildContext context) {
-    Navigator.pushReplacementNamed(context, '/home');
+  void _navigateToNextScreen(BuildContext context) {
+    if (!context.mounted) return;
+    final token = CacheHelper.getData(key: 'token');
+    if (token == null || token == '') {
+      Navigator.pushReplacementNamed(context, '/onboarding');
+    } else {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
   }
 
   @override
@@ -102,7 +108,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
-                      onTap: () => _navigateToHome(context),
+                      onTap: () => _navigateToNextScreen(context),
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: const BoxDecoration(
