@@ -76,6 +76,13 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
     final token = CacheHelper.getData(key: 'token');
     if (token == null || token == '') {
       Navigator.pushReplacementNamed(context, '/onboarding');
+      return;
+    } 
+    final role = (CacheHelper.getData(key: 'user_role') ?? 'citizen').toString().toLowerCase();
+    if (role == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin-home');
+    } else if (role == 'technician') {
+      Navigator.pushReplacementNamed(context, '/technician-home');
     } else {
       Navigator.pushReplacementNamed(context, '/home');
     }

@@ -33,7 +33,32 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPending = _report.status == 'Open';
+    Color statusColor;
+    IconData statusIcon;
+    switch (_report.status) {
+      case 'Pending':
+        statusColor = const Color(0xFFE5A100);
+        statusIcon = Icons.hourglass_empty;
+        break;
+      case 'Open':
+        statusColor = const Color(0xFF4A90D9);
+        statusIcon = Icons.folder_open_outlined;
+        break;
+      case 'In_Progress':
+      case 'In Progress':
+        statusColor = const Color(0xFF9B59B6);
+        statusIcon = Icons.groups_outlined;
+        break;
+      case 'Fixed':
+      case 'Verified':
+      case 'Resolved':
+        statusColor = const Color(0xFF2ECC71);
+        statusIcon = Icons.check_circle_outline;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.info_outline;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -156,31 +181,23 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isPending
-                              ? Colors.orange.withOpacity(0.15)
-                              : Colors.green.withOpacity(0.15),
+                          color: statusColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isPending
-                                  ? Icons.schedule
-                                  : Icons.check_circle,
+                              statusIcon,
                               size: 16,
-                              color: isPending
-                                  ? Colors.orange.shade700
-                                  : Colors.green.shade700,
+                              color: statusColor,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               _report.status,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: isPending
-                                    ? Colors.orange.shade700
-                                    : Colors.green.shade700,
+                                color: statusColor,
                               ),
                             ),
                           ],
@@ -406,7 +423,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   }
 
   Widget _buildActions(BuildContext context, TicketModel report) {
-    final role = CacheHelper.getData(key: 'role') ?? 'citizen';
+    final role = (CacheHelper.getData(key: 'user_role') ?? 'citizen').toString().toLowerCase();
 
     if (role == 'admin') {
       return Column(

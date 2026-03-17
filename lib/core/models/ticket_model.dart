@@ -61,7 +61,7 @@ class TicketModel {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       priority: json['priority'] ?? 'Low',
-      status: json['status'] ?? 'Open',
+      status: json['status'] ?? 'Pending',
       lat: _parseDouble(location['lat']),
       lng: _parseDouble(location['lng']),
       confirmedCount: json['confirmed_count'] ?? 0,

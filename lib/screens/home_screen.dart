@@ -202,10 +202,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           tickets = state.tickets;
         }
 
+        final pending = tickets.where((t) => t.status == 'Pending').length;
         final open = tickets.where((t) => t.status == 'Open').length;
-        final assigned = tickets.where((t) => t.status == 'Assigned').length;
         final inProgress = tickets.where((t) => t.status == 'In_Progress' || t.status == 'In Progress').length;
-        final resolved = tickets.where((t) => t.status == 'Fixed' || t.status == 'Verified').length;
+        final resolved = tickets.where((t) => t.status == 'Resolved' || t.status == 'Fixed' || t.status == 'Verified').length;
         final total = tickets.length;
         final resolvedPercent = total > 0 ? (resolved / total * 100).round() : 0;
         final remainingPercent = total > 0 ? 100 - resolvedPercent : 0;
@@ -239,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _buildHeader(),
               _buildQuickActionsSection(),
               _buildActivitySection(
-                total, assigned, open, inProgress, resolved,
+                total, pending, open, inProgress, resolved,
                 resolvedPercent, remainingPercent,
               ),
               _buildRecentTicketsSection(tickets),
@@ -735,27 +735,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Color statusColor;
     IconData statusIcon;
     switch (ticket.status) {
+      case 'Pending':
+        statusColor = const Color(0xFFE5A100);
+        statusIcon = Icons.hourglass_empty;
+        break;
       case 'Open':
         statusColor = const Color(0xFF4A90D9);
-        statusIcon = Icons.lock_open_rounded;
+        statusIcon = Icons.folder_open_outlined;
         break;
       case 'In_Progress':
       case 'In Progress':
-        statusColor = const Color(0xFFF39C12);
-        statusIcon = Icons.autorenew_rounded;
+        statusColor = const Color(0xFF9B59B6);
+        statusIcon = Icons.groups_outlined;
         break;
       case 'Fixed':
       case 'Verified':
+      case 'Resolved':
         statusColor = const Color(0xFF2ECC71);
-        statusIcon = Icons.check_circle;
-        break;
-      case 'Assigned':
-        statusColor = Colors.purple;
-        statusIcon = Icons.person_outline;
+        statusIcon = Icons.check_circle_outline;
         break;
       default:
-        statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
+        statusColor = Colors.grey;
+        statusIcon = Icons.info_outline;
     }
 
     return GestureDetector(

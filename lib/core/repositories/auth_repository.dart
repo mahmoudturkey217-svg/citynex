@@ -35,7 +35,7 @@ class AuthRepository {
           await CacheHelper.saveData(key: 'user_name', value: user.name ?? '');
           await CacheHelper.saveData(key: 'user_email', value: user.email ?? '');
           await CacheHelper.saveData(key: 'user_phone', value: user.phone ?? '');
-          await CacheHelper.saveData(key: 'user_role', value: (user.roles != null && user.roles!.isNotEmpty) ? user.roles!.first : 'citizen');
+          await CacheHelper.saveData(key: 'user_role', value: (user.roles != null && user.roles!.isNotEmpty) ? user.roles!.first.toLowerCase() : 'citizen');
           await CacheHelper.saveData(key: 'user_rating', value: user.rating ?? '0');
           await CacheHelper.saveData(key: 'user_avatar', value: user.avatarUrl ?? '');
         }
@@ -71,7 +71,7 @@ class AuthRepository {
           await CacheHelper.saveData(key: 'user_name', value: user.name ?? '');
           await CacheHelper.saveData(key: 'user_email', value: user.email ?? '');
           await CacheHelper.saveData(key: 'user_phone', value: user.phone ?? '');
-          await CacheHelper.saveData(key: 'user_role', value: (user.roles != null && user.roles!.isNotEmpty) ? user.roles!.first : 'citizen');
+          await CacheHelper.saveData(key: 'user_role', value: (user.roles != null && user.roles!.isNotEmpty) ? user.roles!.first.toLowerCase() : 'citizen');
           await CacheHelper.saveData(key: 'user_rating', value: user.rating ?? '0');
           await CacheHelper.saveData(key: 'user_avatar', value: user.avatarUrl ?? '');
         }

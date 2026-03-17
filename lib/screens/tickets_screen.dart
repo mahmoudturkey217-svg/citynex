@@ -150,27 +150,28 @@ class _TicketsScreenState extends State<TicketsScreen> {
     Color statusColor;
     IconData statusIcon;
     switch (ticket.status) {
+      case 'Pending':
+        statusColor = const Color(0xFFE5A100);
+        statusIcon = Icons.hourglass_empty;
+        break;
       case 'Open':
         statusColor = const Color(0xFF4A90D9);
-        statusIcon = Icons.lock_open_rounded;
+        statusIcon = Icons.folder_open_outlined;
         break;
       case 'In_Progress':
       case 'In Progress':
-        statusColor = const Color(0xFFF39C12);
-        statusIcon = Icons.autorenew_rounded;
+        statusColor = const Color(0xFF9B59B6);
+        statusIcon = Icons.groups_outlined;
         break;
       case 'Fixed':
       case 'Verified':
+      case 'Resolved':
         statusColor = const Color(0xFF2ECC71);
-        statusIcon = Icons.check_circle;
-        break;
-      case 'Assigned':
-        statusColor = Colors.purple;
-        statusIcon = Icons.person_outline;
+        statusIcon = Icons.check_circle_outline;
         break;
       default:
-        statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
+        statusColor = Colors.grey;
+        statusIcon = Icons.info_outline;
     }
 
     return GestureDetector(

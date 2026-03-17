@@ -70,8 +70,16 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // Permission granted and authenticated, proceed to home
-    Navigator.pushReplacementNamed(context, '/home');
+    // Permission granted and authenticated, check role and proceed
+    final role = (CacheHelper.getData(key: 'user_role') ?? 'citizen').toString().toLowerCase();
+
+    if (role == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin-home');
+    } else if (role == 'technician') {
+      Navigator.pushReplacementNamed(context, '/technician-home');
+    } else {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
   }
 
   @override

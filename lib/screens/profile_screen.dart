@@ -41,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (state is TicketSuccess) {
           totalTickets = state.tickets.length;
           resolvedTickets = state.tickets
-              .where((t) => t.status == 'Fixed' || t.status == 'Verified')
+              .where((t) => t.status == 'Resolved' || t.status == 'Fixed' || t.status == 'Verified')
               .length;
           rate = totalTickets > 0
               ? (resolvedTickets / totalTickets * 100).round()

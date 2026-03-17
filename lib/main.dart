@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/create_report_screen.dart';
 import 'screens/report_details_screen.dart';
 import 'screens/admin_home_screen.dart';
+import 'screens/technician_home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/location_permission_screen.dart';
 import 'screens/main/auth/ui/screens/forgot_password_screen.dart';
@@ -83,6 +84,7 @@ class MyApp extends StatelessWidget {
           '/create-report': (context) => const CreateReportScreen(),
           '/report-details': (context) => const ReportDetailsScreen(),
           '/admin-home': (context) => const AdminHomeScreen(),
+          '/technician-home': (context) => const TechnicianHomeScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/forgot-password': (context) => BlocProvider(
             create: (_) => AuthCubit(AuthRepository()),
