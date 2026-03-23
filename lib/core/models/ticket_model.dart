@@ -151,8 +151,24 @@ class TicketsResponseModel {
   factory TicketsResponseModel.fromJson(Map<String, dynamic> json) {
     // Parse each ticket individually — skip bad ones instead of crashing the whole list
     final List<TicketModel> tickets = [];
-    if (json['data'] != null && json['data'] is List) {
-      for (var item in json['data'] as List) {
+
+    // Handle both paginated and non-paginated responses:
+    // Paginated (Laravel): { "data": { "data": [...], "current_page": 1, ... } }
+    // Non-paginated:       { "data": [...] }
+    dynamic rawData = json['data'];
+    List? itemsList;
+
+    if (rawData is List) {
+      itemsList = rawData;
+    } else if (rawData is Map) {
+      final nested = rawData['data'];
+      if (nested is List) {
+        itemsList = nested;
+      }
+    }
+
+    if (itemsList != null) {
+      for (var item in itemsList) {
         try {
           tickets.add(TicketModel.fromJson(item));
         } catch (e) {

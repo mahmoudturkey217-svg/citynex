@@ -1,31 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/main/splash/splash_screen.dart';
-import 'screens/main/onboarding/ui/onboarding_screen.dart';
-import 'screens/main/auth/ui/screens/login_screen.dart';
-import 'screens/main/auth/ui/screens/register_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/create_report_screen.dart';
-import 'screens/report_details_screen.dart';
-import 'screens/admin_home_screen.dart';
-import 'screens/technician_home_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/location_permission_screen.dart';
-import 'screens/main/auth/ui/screens/forgot_password_screen.dart';
-import 'screens/main/auth/ui/screens/change_password_screen.dart';
-import 'screens/personal_info_screen.dart';
-import 'screens/notification_preferences_screen.dart';
-import 'screens/help_support_screen.dart';
-import 'screens/about_screen.dart';
+import 'features/splash/splash_screen.dart';
+import 'features/auth/ui/onboarding_screen.dart';
+import 'features/auth/ui/login_screen.dart';
+import 'features/auth/ui/register_screen.dart';
+import 'features/home/home_screen.dart';
+import 'features/tickets/create_report_screen.dart';
+import 'features/tickets/report_details_screen.dart';
+import 'features/home/admin_home_screen.dart';
+import 'features/technician/technician_home_screen.dart';
+import 'features/profile/profile_screen.dart';
+import 'features/settings/location_permission_screen.dart';
+import 'features/auth/ui/forgot_password_screen.dart';
+import 'features/auth/ui/change_password_screen.dart';
+import 'features/profile/personal_info_screen.dart';
+import 'features/notifications/notification_preferences_screen.dart';
+import 'features/settings/help_support_screen.dart';
+import 'features/settings/about_screen.dart';
 
 import 'core/utils/cache_helper.dart';
 import 'core/api/dio_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/utils/bloc_observer.dart';
 import 'core/repositories/auth_repository.dart';
-import 'screens/main/auth/logic/auth_cubit.dart';
+import 'features/auth/logic/auth_cubit.dart';
 import 'core/repositories/ticket_repository.dart';
-import 'screens/main/tickets/logic/ticket_cubit.dart';
+import 'features/tickets/logic/ticket_cubit.dart';
+import 'core/repositories/assignment_repository.dart';
+import 'features/assignments/logic/assignment_cubit.dart';
+import 'core/repositories/notification_repository.dart';
+import 'features/notifications/logic/notification_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +46,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => TicketCubit(TicketRepository()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => TicketCubit(TicketRepository())),
+        BlocProvider(create: (_) => AssignmentCubit(AssignmentRepository())),
+        BlocProvider(create: (_) => NotificationCubit(NotificationRepository())),
+      ],
       child: MaterialApp(
         title: 'Smart Neighborhood',
         debugShowCheckedModeBanner: false,
