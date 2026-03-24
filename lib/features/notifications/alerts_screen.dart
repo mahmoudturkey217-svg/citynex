@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'logic/notification_cubit.dart';
 import 'logic/notification_state.dart';
 import '../../core/models/notification_model.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/shared_widgets.dart';
+import '../../core/widgets/feedback_states.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -37,10 +42,29 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D3B66),
+                    color: AppColors.primary,
                   ),
                 ),
                 const Spacer(),
+                // Mark all read
+                GestureDetector(
+                  onTap: () {
+                    context.read<NotificationCubit>().markAllAsRead();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.done_all,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 // Settings button
                 GestureDetector(
                   onTap: () =>
@@ -48,12 +72,12 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D3B66).withOpacity(0.08),
+                      color: AppColors.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.settings_outlined,
-                      color: Color(0xFF0D3B66),
+                      color: AppColors.primary,
                       size: 22,
                     ),
                   ),
@@ -81,15 +105,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
             child: BlocConsumer<NotificationCubit, NotificationState>(
               listener: (context, state) {
                 if (state is NotificationActionError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.error),
-                      backgroundColor: Colors.red.shade400,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
+                  AppSnackbar.show(context,
+                      message: state.error, isError: true);
                 }
               },
               buildWhen: (previous, current) {
@@ -99,20 +116,43 @@ class _AlertsScreenState extends State<AlertsScreen> {
               },
               builder: (context, state) {
                 if (state is NotificationLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Skeletonizer(
+                    enabled: true,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: 5,
+                      itemBuilder: (_, __) => _buildSkeletonNotification(),
+                    ),
+                  );
                 }
 
                 if (state is NotificationError) {
-                  return _buildErrorWidget(state.error);
+                  return ErrorState(
+                    title: 'Failed to load notifications',
+                    error: state.error,
+                    onRetry: () => context
+                        .read<NotificationCubit>()
+                        .loadNotificationHistory(),
+                  );
                 }
 
                 if (state is NotificationHistoryLoaded) {
                   final notifications = _unreadOnly
-                      ? state.notifications.where((n) => !n.isRead).toList()
+                      ? state.notifications
+                          .where((n) => !n.isRead)
+                          .toList()
                       : state.notifications;
 
                   if (notifications.isEmpty) {
-                    return _buildEmptyState();
+                    return EmptyState(
+                      icon: Icons.notifications_none_rounded,
+                      title: _unreadOnly
+                          ? 'All caught up!'
+                          : 'No notifications yet',
+                      subtitle: _unreadOnly
+                          ? 'You have no unread notifications'
+                          : 'Your notifications will appear here',
+                    );
                   }
 
                   return RefreshIndicator(
@@ -120,6 +160,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                         .read<NotificationCubit>()
                         .loadNotificationHistory(
                             unreadOnly: _unreadOnly ? true : null),
+                    color: AppColors.primary,
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: notifications.length,
@@ -130,7 +171,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   );
                 }
 
-                return _buildEmptyState();
+                return EmptyState(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'No notifications yet',
+                  subtitle: 'Your notifications will appear here',
+                );
               },
             ),
           ),
@@ -142,30 +187,72 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Widget _buildFilterChip(String label, bool isSelected) {
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _unreadOnly = label == 'Unread';
-        });
+        setState(() => _unreadOnly = label == 'Unread');
         context.read<NotificationCubit>().loadNotificationHistory(
               unreadOnly: _unreadOnly ? true : null,
             );
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0D3B66) : Colors.white,
+          color: isSelected ? AppColors.primary : AppColors.cardBg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0D3B66) : Colors.grey.shade300,
+            color: isSelected ? AppColors.primary : AppColors.border,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.grey.shade600,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonNotification() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: AppDimensions.borderRadiusMd,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 160, height: 14, color: AppColors.surfaceLight),
+                const SizedBox(height: 6),
+                Container(width: 120, height: 10, color: AppColors.surfaceLight),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -173,35 +260,33 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Widget _buildNotificationCard(NotificationModel notification) {
     final bool isUnread = !notification.isRead;
 
-    // Pick icon based on notification type
     IconData notifIcon;
     Color notifColor;
     if (notification.type.contains('assigned') ||
         notification.type.contains('assignment')) {
       notifIcon = Icons.assignment_outlined;
-      notifColor = const Color(0xFF4A90D9);
+      notifColor = AppColors.open;
     } else if (notification.type.contains('resolved') ||
         notification.type.contains('completed')) {
       notifIcon = Icons.check_circle_outline;
-      notifColor = const Color(0xFF2ECC71);
+      notifColor = AppColors.resolved;
     } else if (notification.type.contains('declined') ||
         notification.type.contains('closed')) {
       notifIcon = Icons.cancel_outlined;
-      notifColor = const Color(0xFFE74C3C);
+      notifColor = AppColors.declined;
     } else if (notification.type.contains('media') ||
         notification.type.contains('upload')) {
       notifIcon = Icons.image_outlined;
-      notifColor = const Color(0xFF9B59B6);
+      notifColor = AppColors.inProgress;
     } else if (notification.type.contains('voted') ||
         notification.type.contains('confirm')) {
       notifIcon = Icons.thumb_up_outlined;
-      notifColor = const Color(0xFFF39C12);
+      notifColor = AppColors.pending;
     } else {
       notifIcon = Icons.notifications_outlined;
-      notifColor = const Color(0xFF0D3B66);
+      notifColor = AppColors.primary;
     }
 
-    // Format date
     String formattedDate = '';
     try {
       final dt = DateTime.parse(notification.createdAt);
@@ -234,12 +319,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isUnread
-              ? const Color(0xFF0D3B66).withOpacity(0.04)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+              ? AppColors.primary.withOpacity(0.04)
+              : AppColors.cardBg,
+          borderRadius: AppDimensions.borderRadiusMd,
           border: isUnread
-              ? Border.all(
-                  color: const Color(0xFF0D3B66).withOpacity(0.12), width: 1)
+              ? Border.all(color: AppColors.primary.withOpacity(0.12))
               : null,
           boxShadow: [
             BoxShadow(
@@ -252,7 +336,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon
             Container(
               width: 42,
               height: 42,
@@ -263,8 +346,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
               child: Icon(notifIcon, color: notifColor, size: 22),
             ),
             const SizedBox(width: 12),
-
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +359,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                             fontSize: 14,
                             fontWeight:
                                 isUnread ? FontWeight.w700 : FontWeight.w500,
-                            color: const Color(0xFF1A1D26),
+                            color: AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -289,7 +370,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF4A90D9),
+                            color: AppColors.primarySoft,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -299,9 +380,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       notification.message,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: AppColors.textHint,
                         height: 1.3,
                       ),
                       maxLines: 2,
@@ -311,109 +392,12 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   const SizedBox(height: 6),
                   Text(
                     formattedDate,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade400,
+                      color: AppColors.textHint,
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D3B66).withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.notifications_none_rounded,
-              size: 56,
-              color: Color(0xFF0D3B66),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            _unreadOnly ? 'All caught up!' : 'No notifications yet',
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1D26),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _unreadOnly
-                ? 'You have no unread notifications.'
-                : 'Your notifications will appear here.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorWidget(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.error_outline,
-                  size: 48, color: Colors.red.shade300),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load notifications',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1D26),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                error,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.red.shade400),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => context
-                  .read<NotificationCubit>()
-                  .loadNotificationHistory(),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D3B66),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ],

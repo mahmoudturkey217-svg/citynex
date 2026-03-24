@@ -119,4 +119,38 @@ class NotificationCubit extends Cubit<NotificationState> {
       emit(NotificationHistoryLoaded(notifications: _cachedNotifications));
     }
   }
+
+  /// Mark all unread notifications as read
+  Future<void> markAllAsRead() async {
+    try {
+      final unreadNotifications = _cachedNotifications.where((n) => n.isRead == false).toList();
+      
+      for (var notification in unreadNotifications) {
+        if (notification.id != null) {
+          // If the backend doesn't have a bulk 'markAllAsRead' endpoint, we loop through them
+          await notificationRepository.markNotificationAsRead(notification.id!);
+          
+          final idx = _cachedNotifications.indexWhere((n) => n.id == notification.id);
+          if (idx >= 0) {
+            _cachedNotifications[idx] = NotificationModel(
+              id: _cachedNotifications[idx].id,
+              type: _cachedNotifications[idx].type,
+              title: _cachedNotifications[idx].title,
+              message: _cachedNotifications[idx].message,
+              isRead: true,
+              createdAt: _cachedNotifications[idx].createdAt,
+              data: _cachedNotifications[idx].data,
+            );
+          }
+        }
+      }
+
+      emit(NotificationHistoryLoaded(
+        notifications: List.from(_cachedNotifications),
+      ));
+    } catch (e) {
+      emit(NotificationActionError(error: e.toString()));
+      emit(NotificationHistoryLoaded(notifications: _cachedNotifications));
+    }
+  }
 }

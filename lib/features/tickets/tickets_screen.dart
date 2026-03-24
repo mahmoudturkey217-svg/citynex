@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/models/ticket_model.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/shared_widgets.dart';
+import '../../core/widgets/badges.dart';
+import '../../core/widgets/feedback_states.dart';
 import 'logic/ticket_cubit.dart';
 import 'logic/ticket_state.dart';
 
@@ -37,58 +44,19 @@ class _TicketsScreenState extends State<TicketsScreen> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0D3B66),
+                color: AppColors.primary,
               ),
             ),
           ),
           const SizedBox(height: 16),
 
           // Filter chips
-          SizedBox(
-            height: 38,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: _filters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final filter = _filters[index];
-                final isSelected = _selectedFilter == filter;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedFilter = filter);
-                    if (filter == 'All') {
-                      TicketCubit.get(context).getTickets();
-                    } else {
-                      TicketCubit.get(context).getTickets(status: filter);
-                    }
-                  },
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF0D3B66)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFF0D3B66)
-                            : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Text(
-                      filter.replaceAll('_', ' '),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+          FilterChipBar(
+            filters: _filters,
+            selected: _selectedFilter,
+            onSelected: (filter) {
+              setState(() => _selectedFilter = filter);
+            },
           ),
           const SizedBox(height: 16),
 
@@ -97,47 +65,65 @@ class _TicketsScreenState extends State<TicketsScreen> {
             child: BlocBuilder<TicketCubit, TicketState>(
               buildWhen: (previous, current) {
                 return current is TicketLoading ||
-                       current is TicketSuccess ||
-                       current is TicketError;
+                    current is TicketSuccess ||
+                    current is TicketError;
               },
               builder: (context, state) {
                 if (state is TicketLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state is TicketError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-                        const SizedBox(height: 12),
-                        Text(state.error, textAlign: TextAlign.center),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: () => TicketCubit.get(context).getTickets(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                  return Skeletonizer(
+                    enabled: true,
+                    child: ListView.builder(
+                      padding: AppDimensions.screenPadding,
+                      itemCount: 5,
+                      itemBuilder: (_, __) => _buildSkeletonTicket(),
                     ),
                   );
                 }
 
-                if (state is TicketSuccess) {
-                  final tickets = state.tickets;
-                  if (tickets.isEmpty) {
-                    return _buildEmptyState();
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: tickets.length,
-                    itemBuilder: (context, index) {
-                      return _buildTicketItem(tickets[index]);
-                    },
+                if (state is TicketError) {
+                  return ErrorState(
+                    error: state.error,
+                    onRetry: () => TicketCubit.get(context).getTickets(),
                   );
                 }
 
-                return _buildEmptyState();
+                if (state is TicketSuccess) {
+                  final allTickets = state.tickets;
+                  final tickets = _selectedFilter == 'All' 
+                      ? allTickets 
+                      : allTickets.where((t) => t.status.toLowerCase().replaceAll(' ', '_') == _selectedFilter.toLowerCase()).toList();
+
+                  if (tickets.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'No tickets found',
+                      subtitle: _selectedFilter == 'All'
+                          ? 'You haven\'t submitted any tickets yet'
+                          : 'No ${_selectedFilter.replaceAll('_', ' ')} tickets',
+                      actionLabel: 'Create Ticket',
+                      onAction: () =>
+                          Navigator.pushNamed(context, '/create-report'),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      TicketCubit.get(context).getTickets();
+                      await Future.delayed(
+                          const Duration(milliseconds: 500));
+                    },
+                    color: AppColors.primary,
+                    child: ListView.builder(
+                      padding: AppDimensions.screenPadding,
+                      itemCount: tickets.length,
+                      itemBuilder: (context, index) {
+                        return _buildTicketCard(tickets[index]);
+                      },
+                    ),
+                  );
+                }
+
+                return const SizedBox.shrink();
               },
             ),
           ),
@@ -146,81 +132,107 @@ class _TicketsScreenState extends State<TicketsScreen> {
     );
   }
 
-  Widget _buildTicketItem(TicketModel ticket) {
-    Color statusColor;
-    IconData statusIcon;
-    switch (ticket.status) {
-      case 'Pending':
-        statusColor = const Color(0xFFE5A100);
-        statusIcon = Icons.hourglass_empty;
-        break;
-      case 'Open':
-        statusColor = const Color(0xFF4A90D9);
-        statusIcon = Icons.folder_open_outlined;
-        break;
-      case 'In_Progress':
-      case 'In Progress':
-        statusColor = const Color(0xFF9B59B6);
-        statusIcon = Icons.groups_outlined;
-        break;
-      case 'Fixed':
-      case 'Verified':
-      case 'Resolved':
-        statusColor = const Color(0xFF2ECC71);
-        statusIcon = Icons.check_circle_outline;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.info_outline;
-    }
-
-    return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamed(context, '/report-details', arguments: ticket),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+  Widget _buildSkeletonTicket() {
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: AppDimensions.borderRadiusSm,
+            ),
+            child: const Icon(Icons.report_outlined, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 160, height: 14, color: AppColors.surfaceLight),
+                const SizedBox(height: 6),
+                Container(width: 120, height: 10, color: AppColors.surfaceLight),
+                const SizedBox(height: 8),
+                Container(width: 80, height: 18, color: AppColors.surfaceLight),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTicketCard(TicketModel ticket) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/report-details', arguments: ticket),
+      child: AppCard(
         child: Row(
           children: [
+            // Priority color strip
             Container(
-              width: 56, height: 56,
+              width: 4,
+              height: 60,
               decoration: BoxDecoration(
-                color: const Color(0xFF0D3B66).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.statusColor(ticket.status),
+                borderRadius: BorderRadius.circular(2),
               ),
-              child: ticket.media != null && ticket.media!.isNotEmpty && ticket.media!.first.mediaUrl != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        ticket.media!.first.mediaUrl!,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          _getCategoryIcon(ticket.category.name),
-                          color: const Color(0xFF0D3B66),
-                          size: 26,
-                        ),
-                      ),
-                    )
-                  : Icon(
-                      _getCategoryIcon(ticket.category.name),
-                      color: const Color(0xFF0D3B66),
-                      size: 26,
-                    ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
+            // Category icon or Image thumbnail
+            if (ticket.media != null && ticket.media!.isNotEmpty && ticket.media!.first.mediaUrl != null)
+              ClipRRect(
+                borderRadius: AppDimensions.borderRadiusSm,
+                child: CachedNetworkImage(
+                  imageUrl: ticket.media!.first.mediaUrl!,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  progressIndicatorBuilder: (context, url, progress) => Container(
+                    width: 48,
+                    height: 48,
+                    color: AppColors.surfaceLight,
+                    child: const Center(
+                      child: SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 48,
+                    height: 48,
+                    color: AppColors.surfaceLight,
+                    child: const Icon(Icons.broken_image, size: 20, color: AppColors.textHint),
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: AppDimensions.borderRadiusSm,
+                ),
+                child: Center(
+                  child: Icon(
+                    AppColors.categoryIcon(ticket.category.name),
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 12),
+            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,134 +242,55 @@ class _TicketsScreenState extends State<TicketsScreen> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1D26),
+                      color: AppColors.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                    ticket.description,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textHint),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(statusIcon, size: 11, color: statusColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              ticket.status.replaceAll('_', ' '),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: statusColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      StatusBadge(status: ticket.status, fontSize: 10),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: _getPriorityColor(ticket.priority).withOpacity(0.1),
+                          color: AppColors.primary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          ticket.priority,
-                          style: TextStyle(
+                          ticket.category.name,
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: _getPriorityColor(ticket.priority),
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
                       const Spacer(),
                       Text(
-                        ticket.createdAt.length >= 10 ? ticket.createdAt.substring(0, 10) : ticket.createdAt,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade400,
-                        ),
+                        ticket.createdAt.length >= 10
+                            ? ticket.createdAt.substring(0, 10)
+                            : ticket.createdAt,
+                        style: const TextStyle(
+                            fontSize: 10, color: AppColors.textHint),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'Critical':
-        return Colors.red;
-      case 'High':
-        return Colors.orange;
-      case 'Medium':
-        return Colors.amber.shade700;
-      case 'Low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getCategoryIcon(String categoryName) {
-    switch (categoryName.toLowerCase()) {
-      case 'road damage':
-        return Icons.warning_rounded;
-      case 'public safety':
-        return Icons.shield_outlined;
-      case 'water':
-        return Icons.water_drop_outlined;
-      case 'electricity':
-        return Icons.electric_bolt_outlined;
-      case 'waste':
-        return Icons.delete_outline;
-      default:
-        return Icons.report_outlined;
-    }
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D3B66).withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.receipt_long_outlined,
-              size: 48,
-              color: Color(0xFF0D3B66),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'No tickets found',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1D26),
-            ),
-          ),
-        ],
       ),
     );
   }

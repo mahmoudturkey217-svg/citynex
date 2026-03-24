@@ -15,12 +15,20 @@ class ErrorHandler {
             String message = '';
             try {
               if (error.response?.data is Map) {
-                if (error.response?.data['message'] != null) {
+                if (error.response?.data['errors'] != null) {
+                  final errors = error.response?.data['errors'];
+                  if (errors is Map && errors.isNotEmpty) {
+                    final firstError = errors.values.first;
+                    if (firstError is List && firstError.isNotEmpty) {
+                      message = firstError.first.toString();
+                    } else {
+                      message = firstError.toString();
+                    }
+                  } else {
+                    message = error.response?.data['message'] ?? 'Validation failed';
+                  }
+                } else if (error.response?.data['message'] != null) {
                   message = error.response?.data['message'];
-                } else if (error.response?.data['errors'] != null) {
-                  // Example logic for Laravel validation errors
-                  final errors = error.response?.data['errors'] as Map;
-                  message = errors.values.first[0].toString();
                 } else {
                   message = 'Something went wrong';
                 }

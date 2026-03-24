@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/shared_widgets.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -6,271 +9,85 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.scaffoldBg,
       appBar: AppBar(
-        title: const Text(
-          'About CityNex',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF0D2137),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('About CityNex'),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: AppDimensions.screenPadding,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 12),
-
-            // App Logo / Icon
+            const SizedBox(height: 32),
             Container(
-              padding: const EdgeInsets.all(24),
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF0D2137).withOpacity(0.08),
+                color: AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.location_city_rounded,
-                size: 56,
-                color: Color(0xFF0D2137),
-              ),
+              child: const Icon(Icons.location_city, size: 50, color: AppColors.primary),
             ),
-            const SizedBox(height: 16),
-
-            // App name
+            const SizedBox(height: 24),
             const Text(
               'CityNex',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0D2137),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Smart Neighborhood Reporting',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade500,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 8),
-
-            // Version badge
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2ECC71).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Version 1.0.0',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2ECC71),
-                ),
+            const Text(
+              'Version 1.0.0',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textHint,
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Description card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 48),
+            const AppCard(
+              padding: EdgeInsets.all(24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'About the App',
+                   Text(
+                    'Our Mission',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1D26),
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 16),
                   Text(
-                    'CityNex empowers citizens to report neighborhood issues '
-                    'like potholes, broken street lights, water leaks, and more. '
-                    'Our AI-powered platform helps classify and prioritize issues '
-                    'so they are resolved faster.\n\n'
-                    'Together, we build smarter, safer neighborhoods.',
+                    'CityNex bridges the gap between citizens and administration. We believe that empowering residents with the right tools creates safer, cleaner, and highly optimized communities.\n\nFrom potholes to malfunctioning street lights, CityNex allows you to report issues in seconds, track their status, and engage with administrators to resolve them quickly.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
+                      fontSize: 15,
+                      color: AppColors.textSecondary,
                       height: 1.6,
                     ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Features list
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Key Features',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1D26),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _buildFeatureRow(
-                    Icons.camera_alt_outlined,
-                    'Photo-based issue reporting',
-                  ),
-                  _buildFeatureRow(
-                    Icons.auto_awesome,
-                    'AI-powered category detection',
-                  ),
-                  _buildFeatureRow(
-                    Icons.my_location_rounded,
-                    'GPS location tagging',
-                  ),
-                  _buildFeatureRow(
-                    Icons.sync_alt_rounded,
-                    'Real-time status tracking',
-                  ),
-                  _buildFeatureRow(
-                    Icons.admin_panel_settings_outlined,
-                    'Admin management dashboard',
-                  ),
-                  _buildFeatureRow(
-                    Icons.shield_outlined,
-                    'Secure authentication',
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Info cards
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildInfoRow('Developer', 'CityNex Team'),
-                  Divider(height: 24, color: Colors.grey.shade100),
-                  _buildInfoRow('Platform', 'Android & iOS'),
-                  Divider(height: 24, color: Colors.grey.shade100),
-                  _buildInfoRow('Built with', 'Flutter & Firebase'),
-                  Divider(height: 24, color: Colors.grey.shade100),
-                  _buildInfoRow('License', 'All rights reserved'),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 24),
-
-            // Copyright
-            Text(
-              '© 2026 CityNex. All rights reserved.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade400,
-              ),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Developed by ', style: TextStyle(color: AppColors.textSecondary)),
+                Text('Zeyad Mahmoud', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
+            Text(
+              '© ${DateTime.now().year} CityNex. All rights reserved.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildFeatureRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D3B66).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 18, color: const Color(0xFF0D3B66)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF1A1D26),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade500,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1D26),
-          ),
-        ),
-      ],
     );
   }
 }

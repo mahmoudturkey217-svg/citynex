@@ -5,6 +5,11 @@ import '../../core/models/ticket_model.dart';
 import '../../core/models/ticket_media_model.dart';
 import 'package:intl/intl.dart';
 import '../../core/utils/cache_helper.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/badges.dart';
+import '../../core/widgets/buttons.dart';
+import '../../core/widgets/shared_widgets.dart';
 import 'logic/ticket_cubit.dart';
 import 'logic/ticket_state.dart';
 
@@ -25,7 +30,6 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     super.didChangeDependencies();
     if (!_didFetchDetails) {
       _report = ModalRoute.of(context)!.settings.arguments as TicketModel;
-      // Fetch ticket details with media
       TicketCubit.get(context).getTicketDetails(_report.id);
       _didFetchDetails = true;
     }
@@ -33,305 +37,306 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor;
-    IconData statusIcon;
-    switch (_report.status) {
-      case 'Pending':
-        statusColor = const Color(0xFFE5A100);
-        statusIcon = Icons.hourglass_empty;
-        break;
-      case 'Open':
-        statusColor = const Color(0xFF4A90D9);
-        statusIcon = Icons.folder_open_outlined;
-        break;
-      case 'In_Progress':
-      case 'In Progress':
-        statusColor = const Color(0xFF9B59B6);
-        statusIcon = Icons.groups_outlined;
-        break;
-      case 'Fixed':
-      case 'Verified':
-      case 'Resolved':
-        statusColor = const Color(0xFF2ECC71);
-        statusIcon = Icons.check_circle_outline;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.info_outline;
-    }
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.scaffoldBg,
       body: BlocListener<TicketCubit, TicketState>(
         listener: (context, state) {
           if (state is TicketDeleteMediaSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-            // reset image index cautiously
+            AppSnackbar.show(context,
+                message: state.message, isSuccess: true);
             setState(() => _currentImageIndex = 0);
           } else if (state is TicketDeleteMediaError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: ${state.error}'),
-                backgroundColor: Colors.red.shade600,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
+            AppSnackbar.show(context,
+                message: 'Error: ${state.error}', isError: true);
           }
         },
         child: CustomScrollView(
           slivers: [
             // Image app bar with media
-          SliverAppBar(
-            expandedHeight: 280,
-            pinned: true,
-            backgroundColor: const Color(0xFF1A237E),
-            foregroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              background: BlocBuilder<TicketCubit, TicketState>(
-                buildWhen: (prev, curr) =>
-                    curr is TicketDetailLoading ||
-                    curr is TicketDetailLoaded ||
-                    curr is TicketDetailError,
-                builder: (context, state) {
-                  if (state is TicketDetailLoading) {
+            SliverAppBar(
+              expandedHeight: 280,
+              pinned: true,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              flexibleSpace: FlexibleSpaceBar(
+                background: BlocBuilder<TicketCubit, TicketState>(
+                  buildWhen: (prev, curr) =>
+                      curr is TicketDetailLoading ||
+                      curr is TicketDetailLoaded ||
+                      curr is TicketDetailError,
+                  builder: (context, state) {
+                    if (state is TicketDetailLoading) {
+                      return Container(
+                        color: AppColors.surfaceLight,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (state is TicketDetailLoaded &&
+                        state.signedUrls.isNotEmpty) {
+                      return _buildImageCarousel(
+                          state.signedUrls, state.media);
+                    }
+
                     return Container(
-                      color: Colors.grey.shade300,
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF1A237E),
-                        ),
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
                       ),
-                    );
-                  }
-
-                  if (state is TicketDetailLoaded &&
-                      state.signedUrls.isNotEmpty) {
-                    return _buildImageCarousel(state.signedUrls, state.media);
-                  }
-
-                  // Fallback placeholder
-                  return Container(
-                    color: Colors.grey.shade300,
-                    child:
-                        const Icon(Icons.image, size: 64, color: Colors.grey),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // We also need a bloc listener wrapper around the sliver list, but we can't wrap Slivers
-          // in BlocListener directly easily unless it's the Scaffold. Let's add it to the body.
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    _report.title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A237E),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Badges row
-                  Row(
-                    children: [
-                      // Category badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A237E).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.category,
-                                size: 16, color: Color(0xFF1A237E)),
-                            const SizedBox(width: 6),
-                            Text(
-                              _report.category?.name ?? 'General',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A237E),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // Status badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              statusIcon,
-                              size: 16,
-                              color: statusColor,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _report.status,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: statusColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Description card
-                  _buildInfoCard(
-                    icon: Icons.description_outlined,
-                    title: 'Description',
-                    child: Text(
-                      _report.description,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade700,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Location card
-                  _buildInfoCard(
-                    icon: Icons.location_on_outlined,
-                    title: 'Location',
-                    child: Text(
-                      'Lat: ${_report.lat.toStringAsFixed(6)}\nLng: ${_report.lng.toStringAsFixed(6)}\nArea: ${_report.area.name}',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Date card
-                  _buildInfoCard(
-                    icon: Icons.calendar_today_outlined,
-                    title: 'Reported On',
-                    child: Text(
-                      _report.createdAt != null && _report.createdAt.isNotEmpty
-                        ? DateFormat('EEEE, MMMM d, yyyy – hh:mm a').format(DateTime.parse(_report.createdAt!))
-                        : 'Unknown',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Vote / Admin actions
-                  _buildActions(context, _report),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
-
-  Widget _buildImageCarousel(List<String> imageUrls, List<TicketMediaModel> mediaItems) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        PageView.builder(
-          itemCount: imageUrls.length,
-          onPageChanged: (index) {
-            setState(() => _currentImageIndex = index);
-          },
-          itemBuilder: (context, index) {
-            final mediaId = index < mediaItems.length ? mediaItems[index].id : null;
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(
-                  imageUrl: imageUrls[index],
-                  fit: BoxFit.cover,
-                  progressIndicatorBuilder: (context, url, progress) {
-                    return Container(
-                      color: Colors.grey.shade300,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: progress.progress,
-                          color: const Color(0xFF1A237E),
-                        ),
-                      ),
-                    );
-                  },
-                  errorWidget: (context, url, error) {
-                    return Container(
-                      color: Colors.grey.shade300,
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.broken_image, size: 48, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text('Failed to load image',
-                              style: TextStyle(color: Colors.grey)),
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 48,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No images provided',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
                     );
                   },
                 ),
-                // Delete button for this specific image overlay
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      _report.title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Badges row
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: AppColors.primary.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                AppColors.categoryIcon(
+                                    _report.category?.name ?? ''),
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _report.category?.name ?? 'General',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        StatusBadge(status: _report.status ?? 'Open', fontSize: 13),
+                        PriorityBadge(priority: _report.priority ?? 'Low', fontSize: 13),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Description card
+                    _buildInfoCard(
+                      icon: Icons.description_outlined,
+                      title: 'Description',
+                      child: Text(
+                        _report.description,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Location card
+                    _buildInfoCard(
+                      icon: Icons.location_on_outlined,
+                      title: 'Location',
+                      child: Text(
+                        'Lat: ${_report.lat.toStringAsFixed(6)}\nLng: ${_report.lng.toStringAsFixed(6)}\nArea: ${_report.area.name}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Date card
+                    _buildInfoCard(
+                      icon: Icons.calendar_today_outlined,
+                      title: 'Reported On',
+                      child: Text(
+                        _report.createdAt != null &&
+                                _report.createdAt.isNotEmpty
+                            ? DateFormat('EEEE, MMMM d, yyyy – hh:mm a')
+                                .format(DateTime.parse(_report.createdAt!))
+                            : 'Unknown',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Actions
+                    _buildActions(context, _report),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageCarousel(
+      List<String> imageUrls, List<TicketMediaModel> mediaItems) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        PageView.builder(
+          itemCount: imageUrls.length,
+          onPageChanged: (index) =>
+              setState(() => _currentImageIndex = index),
+          itemBuilder: (context, index) {
+            final mediaItem =
+                index < mediaItems.length ? mediaItems[index] : null;
+            final mediaId = mediaItem?.id;
+            final beforeAfter = mediaItem?.beforeAfter;
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                InteractiveViewer(
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrls[index],
+                    fit: BoxFit.cover,
+                    progressIndicatorBuilder: (context, url, progress) {
+                      return Container(
+                        color: AppColors.surfaceLight,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: progress.progress,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      return Container(
+                        color: AppColors.surfaceLight,
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image,
+                                size: 48, color: AppColors.textHint),
+                            SizedBox(height: 8),
+                            Text('Failed to load image',
+                                style:
+                                    TextStyle(color: AppColors.textHint)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                // BEFORE/AFTER badge
+                if (beforeAfter != null && beforeAfter.isNotEmpty)
+                  Positioned(
+                    top: 40,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: beforeAfter.toLowerCase() == 'before'
+                            ? AppColors.error.withOpacity(0.9)
+                            : AppColors.resolved.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        beforeAfter.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Delete option for admin
                 if (mediaId != null)
                   Positioned(
-                    top: 40, // Below status bar
+                    top: 40,
                     right: 16,
                     child: IconButton(
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.9),
+                          color: AppColors.error.withOpacity(0.9),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.delete_outline,
                             color: Colors.white, size: 20),
                       ),
-                      onPressed: () {
-                        _showDeleteMediaDialog(context, mediaId);
-                      },
+                      onPressed: () =>
+                          _showDeleteMediaDialog(context, mediaId),
                     ),
                   ),
               ],
             );
           },
         ),
-        // Page indicator dots
         if (imageUrls.length > 1)
           Positioned(
             bottom: 16,
@@ -340,7 +345,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(imageUrls.length, (index) {
-                return Container(
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
                   width: _currentImageIndex == index ? 24 : 8,
                   height: 8,
                   margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -354,13 +360,13 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
               }),
             ),
           ),
-        // Image counter badge, adjusted top padding to avoid overlap with Delete button
         if (imageUrls.length > 1)
           Positioned(
             top: 100,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
@@ -384,33 +390,28 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     required String title,
     required Widget child,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AppCard(
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: const Color(0xFF1A237E)),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 20, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A237E),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -423,113 +424,29 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   }
 
   Widget _buildActions(BuildContext context, TicketModel report) {
-    final role = (CacheHelper.getData(key: 'user_role') ?? 'citizen').toString().toLowerCase();
+    final role = (CacheHelper.getData(key: 'user_role') ?? 'citizen')
+        .toString()
+        .toLowerCase();
 
     if (role == 'admin') {
       return Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () => _showChangeStatusDialog(context, report),
-              icon: const Icon(Icons.edit_note_rounded),
-              label: const Text(
-                'Change Status',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A237E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
+          GradientButton(
+            label: 'Change Status',
+            icon: Icons.edit_note_rounded,
+            onPressed: () => _showChangeStatusDialog(context, report),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: () => _showDeleteDialog(context, report),
-              icon: const Icon(Icons.delete_outline),
-              label: const Text(
-                'Delete Report',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
+          AppOutlineButton(
+            label: 'Delete Report',
+            icon: Icons.delete_outline,
+            color: AppColors.error,
+            onPressed: () => _showDeleteDialog(context, report),
           ),
         ],
       );
     } else {
-      // Citizen role: Vote / Confirm action
-      return SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: BlocConsumer<TicketCubit, TicketState>(
-          listener: (context, state) {
-            if (state is TicketActionSuccess && state.message.contains('confirm')) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('✅ Ticket confirmed successfully!'),
-                  backgroundColor: Colors.green.shade400,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              );
-              Navigator.pop(context); // Optional: Pop back to list
-            } else if (state is TicketActionError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error: ${state.error}'),
-                  backgroundColor: Colors.red.shade600,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            final isLoading = state is TicketActionLoading;
-            return ElevatedButton.icon(
-              onPressed: isLoading ? null : () {
-                if (report.id != null) {
-                  TicketCubit.get(context).confirmTicket(report.id!);
-                }
-              },
-              icon: isLoading ? const SizedBox() : const Icon(Icons.thumb_up_alt_outlined),
-              label: isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      'Confirm / Vote (${report.confirmedCount ?? 0})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A237E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            );
-          },
-        ),
-      );
+      return const SizedBox.shrink();
     }
   }
 
@@ -542,12 +459,12 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                  borderRadius: AppDimensions.borderRadiusLg),
               title: const Text(
                 'Change Status',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A237E),
+                  color: AppColors.primary,
                 ),
               ),
               content: Column(
@@ -557,37 +474,33 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     title: const Text('Pending'),
                     value: 'Pending',
                     groupValue: selectedStatus,
-                    activeColor: Colors.orange,
-                    onChanged: (val) {
-                      setDialogState(() => selectedStatus = val!);
-                    },
+                    activeColor: AppColors.pending,
+                    onChanged: (val) =>
+                        setDialogState(() => selectedStatus = val!),
                   ),
                   RadioListTile<String>(
                     title: const Text('Open'),
                     value: 'Open',
                     groupValue: selectedStatus,
-                    activeColor: const Color(0xFF4A90D9),
-                    onChanged: (val) {
-                      setDialogState(() => selectedStatus = val!);
-                    },
+                    activeColor: AppColors.open,
+                    onChanged: (val) =>
+                        setDialogState(() => selectedStatus = val!),
                   ),
                   RadioListTile<String>(
                     title: const Text('In Progress'),
                     value: 'In Progress',
                     groupValue: selectedStatus,
-                    activeColor: const Color(0xFFF39C12),
-                    onChanged: (val) {
-                      setDialogState(() => selectedStatus = val!);
-                    },
+                    activeColor: AppColors.inProgress,
+                    onChanged: (val) =>
+                        setDialogState(() => selectedStatus = val!),
                   ),
                   RadioListTile<String>(
                     title: const Text('Resolved'),
                     value: 'Resolved',
                     groupValue: selectedStatus,
-                    activeColor: Colors.green,
-                    onChanged: (val) {
-                      setDialogState(() => selectedStatus = val!);
-                    },
+                    activeColor: AppColors.resolved,
+                    onChanged: (val) =>
+                        setDialogState(() => selectedStatus = val!),
                   ),
                 ],
               ),
@@ -598,12 +511,11 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // UI mode: no backend call
                     Navigator.pop(ctx);
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A237E),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -624,17 +536,27 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'Delete Report',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
-            ),
+          shape: RoundedRectangleBorder(
+              borderRadius: AppDimensions.borderRadiusLg),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_outline,
+                    color: AppColors.error, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text('Delete Report',
+                  style: TextStyle(fontSize: 18)),
+            ],
           ),
-          content:
-              const Text('Are you sure you want to delete this report?'),
+          content: const Text(
+              'Are you sure you want to delete this report? This action cannot be undone.',
+              style: TextStyle(color: AppColors.textSecondary)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -642,15 +564,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                // UI mode: no backend call
                 Navigator.pop(ctx);
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               child: const Text('Delete'),
@@ -666,13 +587,27 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'Delete Photo',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          shape: RoundedRectangleBorder(
+              borderRadius: AppDimensions.borderRadiusLg),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.photo_outlined,
+                    color: AppColors.error, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text('Delete Photo',
+                  style: TextStyle(fontSize: 18)),
+            ],
           ),
-          content: const Text('Are you sure you want to delete this photo from the report?'),
+          content: const Text(
+              'Are you sure you want to delete this photo from the report?',
+              style: TextStyle(color: AppColors.textSecondary)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -687,10 +622,10 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               child: const Text('Delete'),

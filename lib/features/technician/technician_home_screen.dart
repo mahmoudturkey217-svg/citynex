@@ -4,6 +4,11 @@ import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import '../../core/utils/cache_helper.dart';
 import '../../core/models/assignment_model.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/shared_widgets.dart';
+import '../../core/widgets/badges.dart';
+import '../../core/widgets/feedback_states.dart';
 import '../assignments/logic/assignment_cubit.dart';
 import '../assignments/logic/assignment_state.dart';
 import '../notifications/alerts_screen.dart';
@@ -48,7 +53,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F4F7),
+      backgroundColor: AppColors.scaffoldBg,
       body: IndexedStack(
         index: _currentNavIndex,
         children: [
@@ -70,13 +75,13 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: Container(
-          height: 68,
+          height: AppDimensions.bottomNavHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF0D2137),
+            color: AppColors.navBar,
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0D2137).withOpacity(0.35),
+                color: AppColors.navBar.withOpacity(0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -387,15 +392,9 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
               const SizedBox(height: 24),
 
               // ─── STATUS BREAKDOWN ───
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Text(
-                  'Status Breakdown',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1D26)),
-                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: SectionHeader(title: 'Status Breakdown'),
               ),
               const SizedBox(height: 14),
 
@@ -410,7 +409,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                             icon: Icons.hourglass_empty,
                             count: pending,
                             label: 'Pending',
-                            color: const Color(0xFFE5A100),
+                            color: AppColors.pending,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -419,7 +418,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                             icon: Icons.check_circle_outline,
                             count: assigned,
                             label: 'Assigned',
-                            color: const Color(0xFF4A90D9),
+                            color: AppColors.open,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -428,7 +427,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                             icon: Icons.sync,
                             count: inProgress,
                             label: 'In Progress',
-                            color: const Color(0xFF9B59B6),
+                            color: AppColors.inProgress,
                           ),
                         ),
                       ],
@@ -441,7 +440,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                             icon: Icons.task_alt,
                             count: completed,
                             label: 'Completed',
-                            color: const Color(0xFF2ECC71),
+                            color: AppColors.resolved,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -450,7 +449,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                             icon: Icons.cancel_outlined,
                             count: declined,
                             label: 'Declined',
-                            color: const Color(0xFFE74C3C),
+                            color: AppColors.declined,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -459,7 +458,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                             icon: Icons.list_alt,
                             count: total,
                             label: 'All Tasks',
-                            color: const Color(0xFF0D3B66),
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
@@ -473,29 +472,10 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
               // ─── RECENT ASSIGNMENTS ───
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recent Assignments',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1D26),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _currentNavIndex = 1),
-                      child: const Text(
-                        '→ View all',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF4A90D9),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: SectionHeader(
+                  title: 'Recent Assignments',
+                  actionLabel: 'View all →',
+                  onAction: () => setState(() => _currentNavIndex = 1),
                 ),
               ),
               const SizedBox(height: 12),
@@ -617,7 +597,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D3B66),
+                    color: AppColors.primary,
                   ),
                 ),
                 const Spacer(),
@@ -679,13 +659,13 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                         horizontal: 18, vertical: 8),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF0D3B66)
+                          ? AppColors.primary
                           : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFF0D3B66)
-                            : Colors.grey.shade300,
+                            ? AppColors.primary
+                            : AppColors.border,
                       ),
                     ),
                     child: Text(
@@ -710,25 +690,9 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
             child: BlocConsumer<AssignmentCubit, AssignmentState>(
               listener: (context, state) {
                 if (state is AssignmentActionSuccess) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: const Color(0xFF2ECC71),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
+                  AppSnackbar.show(context, message: state.message, isSuccess: true);
                 } else if (state is AssignmentActionError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.error),
-                      backgroundColor: Colors.red.shade400,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
+                  AppSnackbar.show(context, message: state.error, isError: true);
                 }
               },
               buildWhen: (previous, current) {
@@ -814,92 +778,18 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
   // ═══════════════════════════════
 
   Widget _buildErrorWidget(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load data',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1D26),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                error,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.red.shade400),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => context.read<AssignmentCubit>().getAssignments(),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D3B66),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ErrorState(
+      title: 'Failed to load data',
+      error: error,
+      onRetry: () => context.read<AssignmentCubit>().getAssignments(),
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D3B66).withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.assignment_turned_in_outlined,
-                  size: 48, color: Color(0xFF0D3B66)),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'No Assignments Found',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1D26)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You have no assignments matching this filter.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: Icons.assignment_turned_in_outlined,
+      title: 'No Assignments Found',
+      subtitle: 'You have no assignments matching this filter.',
     );
   }
 
@@ -908,51 +798,11 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
     Color statusColor;
     IconData statusIcon;
 
-    switch (assignment.status) {
-      case 'Pending':
-        statusColor = const Color(0xFFE5A100);
-        statusIcon = Icons.hourglass_empty;
-        break;
-      case 'Assigned':
-      case 'Accepted':
-      case 'Open':
-        statusColor = const Color(0xFF4A90D9);
-        statusIcon = Icons.check_circle_outline;
-        break;
-      case 'In_Progress':
-      case 'In Progress':
-        statusColor = const Color(0xFF9B59B6);
-        statusIcon = Icons.sync;
-        break;
-      case 'Completed':
-      case 'Fixed':
-      case 'Verified':
-      case 'Resolved':
-        statusColor = const Color(0xFF2ECC71);
-        statusIcon = Icons.task_alt;
-        break;
-      case 'Declined':
-      case 'Closed':
-        statusColor = const Color(0xFFE74C3C);
-        statusIcon = Icons.cancel_outlined;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.info_outline;
-    }
+    statusColor = AppColors.statusColor(assignment.status);
+    statusIcon = AppColors.statusIcon(assignment.status);
 
     // Priority color
-    Color priorityColor;
-    switch (ticket.priority) {
-      case 'High':
-        priorityColor = const Color(0xFFE74C3C);
-        break;
-      case 'Medium':
-        priorityColor = const Color(0xFFF39C12);
-        break;
-      default:
-        priorityColor = const Color(0xFF2ECC71);
-    }
+    final priorityColor = AppColors.priorityColor(ticket.priority);
 
     // Format date
     String formattedDate = '';
@@ -1015,7 +865,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1D26),
+                        color: AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1023,9 +873,9 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                     const SizedBox(height: 4),
                     Text(
                       ticket.description,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: AppColors.textHint,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1104,8 +954,8 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                           .declineAssignment(assignment.id);
                     },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE74C3C),
-                      side: const BorderSide(color: Color(0xFFE74C3C)),
+                      foregroundColor: AppColors.declined,
+                      side: const BorderSide(color: AppColors.declined),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -1127,7 +977,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                           .acceptAssignment(assignment.id);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2ECC71),
+                      backgroundColor: AppColors.resolved,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1164,7 +1014,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D3B66),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),

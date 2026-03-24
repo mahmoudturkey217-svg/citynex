@@ -35,7 +35,7 @@ class AuthCubit extends Cubit<AuthState> {
         );
       }
     } catch (e) {
-      emit(AuthRegisterError(error: e.toString()));
+      emit(AuthRegisterError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -55,7 +55,7 @@ class AuthCubit extends Cubit<AuthState> {
         );
       }
     } catch (e) {
-      emit(AuthLoginError(error: e.toString()));
+      emit(AuthLoginError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -72,7 +72,7 @@ class AuthCubit extends Cubit<AuthState> {
             error: response.message ?? 'Failed to send reset link'));
       }
     } catch (e) {
-      emit(AuthForgotPasswordError(error: e.toString()));
+      emit(AuthForgotPasswordError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -99,7 +99,7 @@ class AuthCubit extends Cubit<AuthState> {
             error: response.message ?? 'Failed to reset password'));
       }
     } catch (e) {
-      emit(AuthResetPasswordError(error: e.toString()));
+      emit(AuthResetPasswordError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 }
