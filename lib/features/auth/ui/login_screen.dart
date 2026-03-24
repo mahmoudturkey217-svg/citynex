@@ -264,59 +264,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 24),
 
-                        // OR divider
-                        Row(
-                          children: [
-                            Expanded(
-                                child: Divider(
-                                    color: AppColors.border,
-                                    endIndent: 16)),
-                            const Text(
-                              'OR',
-                              style: TextStyle(
-                                color: AppColors.textHint,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
-                            Expanded(
-                                child: Divider(
-                                    color: AppColors.border,
-                                    indent: 16)),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
 
-                        // Google Login Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: AppDimensions.buttonHeight,
-                          child: OutlinedButton.icon(
-                            onPressed:
-                                isLoading ? null : _signInWithGoogle,
-                            icon: const Icon(
-                              Icons.g_mobiledata,
-                              size: 28,
-                              color: Color(0xFF4285F4),
-                            ),
-                            label: const Text(
-                              'Log in with Google',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: AppDimensions.borderRadiusMd,
-                              ),
-                              side:
-                                  const BorderSide(color: AppColors.border),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
 
                         // Sign up link
                         Row(
