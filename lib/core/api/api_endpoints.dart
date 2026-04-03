@@ -4,6 +4,9 @@ class ApiEndpoints {
   static const String login = 'auth/login';
   static const String forgotPassword = 'auth/forgot-password';
   static const String resetPassword = 'auth/reset-password';
+  static const String updateProfile = 'auth/profile';
+  static const String profileAvatar = 'auth/profile/avatar';
+  static const String changePassword = 'auth/change-password';
   static const String citizenTickets = 'citizen/tickets';
   static const String citizenNotificationPrefs = 'citizen/notifications/preferences';
   static const String citizenNotificationHistory = 'citizen/notifications/history';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/ticket_model.dart';
 import '../../core/models/ticket_media_model.dart';
 import 'package:intl/intl.dart';
@@ -193,16 +194,55 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Location card
+                    // Location card – Open in Google Maps
                     _buildInfoCard(
                       icon: Icons.location_on_outlined,
                       title: 'Location',
-                      child: Text(
-                        'Lat: ${_report.lat.toStringAsFixed(6)}\nLng: ${_report.lng.toStringAsFixed(6)}\nArea: ${_report.area.name}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: AppColors.textSecondary,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _report.area.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final lat = _report.lat;
+                                final lng = _report.lng;
+                                final url = Uri.parse(
+                                    'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url,
+                                      mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              icon: const Icon(Icons.map_outlined, size: 20),
+                              label: const Text(
+                                'Open in Google Maps',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/assignment_model.dart';
 import '../../core/models/ticket_media_model.dart';
 import '../../core/repositories/assignment_repository.dart';
@@ -237,10 +238,6 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                         _buildInfoRow('Assignment ID', '#${assignment.id}'),
                         _buildInfoRow('Assigned At', assignedDate),
                         _buildInfoRow('Status', assignment.displayStatus),
-                        _buildInfoRow(
-                            'Score', assignment.score.toStringAsFixed(1)),
-                        _buildInfoRow('AI Verified',
-                            assignment.aiVerified ? 'Yes ✓' : 'No'),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -250,9 +247,39 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                       title: 'Location',
                       icon: Icons.location_on_outlined,
                       children: [
-                        _buildInfoRow('Latitude', ticket.lat.toStringAsFixed(6)),
-                        _buildInfoRow(
-                            'Longitude', ticket.lng.toStringAsFixed(6)),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final lat = ticket.lat;
+                              final lng = ticket.lng;
+                              final url = Uri.parse(
+                                  'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url,
+                                    mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            icon: const Icon(Icons.map_outlined, size: 20),
+                            label: const Text(
+                              'Open in Google Maps',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0D3B66),
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),

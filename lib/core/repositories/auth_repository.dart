@@ -124,4 +124,104 @@ class AuthRepository {
       throw ErrorHandler.handle(e);
     }
   }
+
+  /// PUT auth/profile – update name (and optionally phone)
+  Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    String? phone,
+  }) async {
+    try {
+      final token = CacheHelper.getData(key: 'token');
+
+      FormData formData = FormData.fromMap({
+        '_method': 'PUT', // Laravel form‐method spoofing
+        'name': name,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+      });
+
+      final response = await DioHelper.postData(
+        url: ApiEndpoints.updateProfile,
+        data: formData,
+        token: token,
+        isMultipart: true,
+      );
+
+      final data = response.data;
+      if (data['success'] == true && data['data'] != null) {
+        final user = data['data'];
+        await CacheHelper.saveData(key: 'user_name', value: user['name'] ?? '');
+        if (user['phone'] != null) {
+          await CacheHelper.saveData(key: 'user_phone', value: user['phone'].toString());
+        }
+        if (user['avatar_url'] != null) {
+          await CacheHelper.saveData(key: 'user_avatar', value: user['avatar_url']);
+        }
+      }
+
+      return data;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// POST auth/profile/avatar – upload profile picture
+  Future<Map<String, dynamic>> uploadAvatar({
+    required String filePath,
+  }) async {
+    try {
+      final token = CacheHelper.getData(key: 'token');
+
+      FormData formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath, filename: 'avatar.jpg'),
+      });
+
+      final response = await DioHelper.postData(
+        url: ApiEndpoints.profileAvatar,
+        data: formData,
+        token: token,
+        isMultipart: true,
+      );
+
+      final data = response.data;
+      if (data['success'] == true && data['data'] != null) {
+        final user = data['data'];
+        if (user['avatar_url'] != null) {
+          await CacheHelper.saveData(key: 'user_avatar', value: user['avatar_url']);
+        }
+      }
+
+      return data;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// PUT auth/change-password
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final token = CacheHelper.getData(key: 'token');
+
+      FormData formData = FormData.fromMap({
+        '_method': 'PUT',
+        'current_password': currentPassword,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      });
+
+      final response = await DioHelper.postData(
+        url: ApiEndpoints.changePassword,
+        data: formData,
+        token: token,
+        isMultipart: true,
+      );
+
+      return response.data;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
 }

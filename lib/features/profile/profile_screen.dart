@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/models/user_model.dart';
@@ -90,6 +91,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildAvatar(UserModel user) {
+    final String? serverAvatar = CacheHelper.getData(key: 'user_avatar');
+    final String? localAvatar = CacheHelper.getData(key: 'user_avatar_local');
+
+    ImageProvider? bgImage;
+    if (serverAvatar != null && serverAvatar.isNotEmpty) {
+      bgImage = CachedNetworkImageProvider(serverAvatar);
+    } else if (localAvatar != null && localAvatar.isNotEmpty) {
+      bgImage = FileImage(File(localAvatar));
+    }
+
+    return CircleAvatar(
+      radius: AppDimensions.avatarRadius,
+      backgroundColor: Colors.white.withOpacity(0.2),
+      backgroundImage: bgImage,
+      child: bgImage == null
+          ? Text(
+              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            )
+          : null,
+    );
+  }
+
   Widget _buildProfileContent(BuildContext context, UserModel user,
       int totalTickets, int resolvedTickets, int rate) {
     final bool isTechnician = user.role == 'technician';
@@ -124,27 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       width: 3,
                     ),
                   ),
-                  child: CircleAvatar(
-                    radius: AppDimensions.avatarRadius,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    backgroundImage:
-                        CacheHelper.getData(key: 'user_avatar_local') != null
-                            ? FileImage(File(
-                                CacheHelper.getData(key: 'user_avatar_local')))
-                            : null,
-                    child: CacheHelper.getData(key: 'user_avatar_local') == null
-                        ? Text(
-                            user.name.isNotEmpty
-                                ? user.name[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
-                  ),
+                  child: _buildAvatar(user),
                 ),
                 const SizedBox(height: 14),
 
