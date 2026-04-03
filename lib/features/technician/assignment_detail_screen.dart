@@ -224,8 +224,6 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                         _buildInfoRow('Category', ticket.category.name),
                         _buildInfoRow('Area / Zone', ticket.area.name),
                         _buildInfoRow('Created', createdDate),
-                        _buildInfoRow(
-                            'Confirmed', '${ticket.confirmedCount} times'),
                       ],
                     ),
                     const SizedBox(height: 16),
