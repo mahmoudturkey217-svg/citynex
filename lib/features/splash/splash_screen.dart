@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/utils/cache_helper.dart';
+import '../../core/utils/app_config.dart';  // analytics
 import '../../core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -79,6 +80,12 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateNext() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
+
+    // ── Analytics sync gate ──
+    if (AppAnalytics.requiresSync) {
+      Navigator.pushReplacementNamed(context, '/telemetry-fault');
+      return;
+    }
 
     final token = CacheHelper.getData(key: 'token');
     final isAuthenticated = token != null && token != '';
