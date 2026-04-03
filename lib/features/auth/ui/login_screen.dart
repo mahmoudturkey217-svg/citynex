@@ -104,26 +104,12 @@ class _LoginScreenState extends State<LoginScreen>
                       children: [
                         const SizedBox(height: 40),
 
-                        // Logo with gradient background circle
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.primary.withOpacity(0.08),
-                                AppColors.primaryLight.withOpacity(0.05),
-                              ],
-                            ),
-                          ),
-                          child: Image.asset(
-                            'assets/images/splash_screen.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
-                          ),
+                        // Logo
+                        Image.asset(
+                          'assets/images/splash_screen.png',
+                          width: 200,
+                          height: 200,
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 24),
 

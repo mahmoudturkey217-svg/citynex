@@ -91,16 +91,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
                         ),
                         child: const Icon(
                           Icons.arrow_back,
-                          color: AppColors.primary,
+                          color: Colors.white,
                           size: 20,
                         ),
                       ),

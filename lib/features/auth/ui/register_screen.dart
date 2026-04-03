@@ -78,18 +78,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 32),
 
                       // Logo
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withOpacity(0.06),
-                        ),
-                        child: Image.asset(
-                          'assets/images/splash_screen.png',
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.contain,
-                        ),
+                      Image.asset(
+                        'assets/images/splash_screen.png',
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 20),
 
