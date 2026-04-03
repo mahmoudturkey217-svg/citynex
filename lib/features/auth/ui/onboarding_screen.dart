@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_dimensions.dart';
-import '../../../core/widgets/buttons.dart';
 
 class OnboardingItem {
   final String image;
@@ -79,20 +77,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               const SizedBox(height: 16),
 
-              // Top bar: Back + Skip
+              // ── Top bar: Back arrow + Skip pill ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Back arrow in a circle with dark border
                   AnimatedOpacity(
                     opacity: currentIndex > 0 ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: GestureDetector(
                       onTap: currentIndex > 0 ? _previousPage : null,
                       child: Container(
-                        padding: const EdgeInsets.all(10),
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.08),
+                          color: Colors.white,
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
                         ),
                         child: const Icon(
                           Icons.arrow_back,
@@ -102,14 +106,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   ),
-                  TextButton(
-                    onPressed: _goToLogin,
-                    child: const Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+
+                  // Skip – dark filled rounded pill
+                  GestureDetector(
+                    onTap: _goToLogin,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -118,7 +134,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
               const SizedBox(height: 20),
 
-              // Page content
+              // ── Page content ──
               Expanded(
                 child: PageView.builder(
                   controller: _controller,
@@ -128,67 +144,54 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   itemCount: onboardingData.length,
                   itemBuilder: (context, index) {
                     final item = onboardingData[index];
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: Column(
-                        key: ValueKey(index),
-                        children: [
-                          // Image
-                          SizedBox(
-                            width: double.infinity,
-                            height: screenHeight * 0.38,
-                            child: Image.asset(
-                              item.image,
-                              fit: BoxFit.contain,
-                            ),
+                    return Column(
+                      key: ValueKey(index),
+                      children: [
+                        // Image
+                        SizedBox(
+                          width: double.infinity,
+                          height: screenHeight * 0.38,
+                          child: Image.asset(
+                            item.image,
+                            fit: BoxFit.contain,
                           ),
-                          const SizedBox(height: 32),
+                        ),
+                        const SizedBox(height: 32),
 
-                          // Tagline with gradient accent
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              item.tagline,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.accent,
-                                letterSpacing: 3,
-                              ),
-                            ),
+                        // Tagline – bold, dark, prominent
+                        Text(
+                          item.tagline,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                            letterSpacing: 2,
                           ),
-                          const SizedBox(height: 20),
+                        ),
+                        const SizedBox(height: 16),
 
-                          // Description text
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20),
-                            child: Text(
-                              item.text,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                                height: 1.5,
-                              ),
+                        // Description
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            item.text,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.textSecondary,
+                              height: 1.5,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     );
                   },
                 ),
               ),
 
-              // Dot indicators
+              // ── Dot indicators ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
@@ -197,8 +200,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 6,
-                    width: currentIndex == index ? 28 : 6,
+                    height: 8,
+                    width: currentIndex == index ? 28 : 8,
                     decoration: BoxDecoration(
                       color: currentIndex == index
                           ? AppColors.primary
@@ -210,15 +213,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Bottom button
-              GradientButton(
-                label: currentIndex == onboardingData.length - 1
-                    ? 'Get Started'
-                    : 'Next',
-                onPressed: _nextPage,
-                icon: currentIndex == onboardingData.length - 1
-                    ? Icons.arrow_forward
-                    : null,
+              // ── Bottom "Next" / "Get Started" button ──
+              GestureDetector(
+                onTap: _nextPage,
+                child: Container(
+                  width: double.infinity,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3),
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      currentIndex == onboardingData.length - 1
+                          ? 'Get Started'
+                          : 'Next',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
             ],

@@ -272,7 +272,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                               backgroundColor: const Color(0xFF0D3B66),
                               foregroundColor: Colors.white,
                               padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -456,7 +456,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               if (hasMedia)
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFF9B59B6).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
@@ -535,12 +535,12 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                                   return Center(
                                     child: CircularProgressIndicator(
                                       value: loadingProgress
-                                                  .expectedTotalBytes !=
-                                              null
+                                          .expectedTotalBytes !=
+                                          null
                                           ? loadingProgress
-                                                  .cumulativeBytesLoaded /
-                                              loadingProgress
-                                                  .expectedTotalBytes!
+                                          .cumulativeBytesLoaded /
+                                          loadingProgress
+                                              .expectedTotalBytes!
                                           : null,
                                       strokeWidth: 2,
                                     ),
@@ -659,7 +659,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 _showConfirmDialog(
                   'Decline Assignment',
                   'Are you sure you want to decline this assignment?',
-                  () => context
+                      () => context
                       .read<AssignmentCubit>()
                       .declineAssignment(assignment.id),
                 );
@@ -717,7 +717,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                   _showConfirmDialog(
                     'Mark as Completed',
                     'Are you sure this assignment is completed?',
-                    () => context
+                        () => context
                         .read<AssignmentCubit>()
                         .updateAssignmentStatus(assignment.id, 'Completed'),
                   );
@@ -770,10 +770,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       );
       if (image != null && context.mounted) {
         context.read<AssignmentCubit>().uploadMedia(
-              assignment.ticket.id,
-              image.path,
-              beforeAfter: 'After',
-            );
+          assignment.ticket.id,
+          image.path,
+          beforeAfter: 'After',
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -792,7 +792,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(title,
             style:
-                const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         content: Text(message,
             style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
         actions: [

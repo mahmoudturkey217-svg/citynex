@@ -77,7 +77,7 @@ class AboutScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text('Developed by ', style: TextStyle(color: AppColors.textSecondary)),
-                Text('Zeyad Mahmoud', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                Text('CityNex Team', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 40),

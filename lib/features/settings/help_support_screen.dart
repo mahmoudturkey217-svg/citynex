@@ -17,8 +17,8 @@ class HelpSupportScreen extends StatelessWidget {
   }
 
   Future<void> _openInstagram() async {
-    final nativeUrl = Uri.parse('instagram://user?username=zeyad_turki.lll');
-    final webUrl = Uri.parse('https://www.instagram.com/zeyad_turki.lll');
+    final nativeUrl = Uri.parse('instagram://user?username=citynex_app');
+    final webUrl = Uri.parse('https://www.instagram.com/citynex_app');
 
     if (await canLaunchUrl(nativeUrl)) {
       // Instagram app is installed, open it directly!
@@ -74,23 +74,23 @@ class HelpSupportScreen extends StatelessWidget {
                   _buildContactCard(
                     icon: Icons.email_outlined,
                     title: 'Email Support',
-                    subtitle: 'zeyadmahmoud159@gmail.com',
+                    subtitle: 'support@citynex.example.com',
                     color: AppColors.primary,
-                    onTap: () => _launchUrl('mailto:zeyadmahmoud159@gmail.com'),
+                    onTap: () => _launchUrl('mailto:support@citynex.example.com'),
                   ),
                   const SizedBox(height: 12),
                   _buildContactCard(
                     icon: Icons.phone_outlined,
                     title: 'Call Us',
-                    subtitle: '01033058697',
+                    subtitle: '+1 234 567 8900',
                     color: AppColors.resolved,
-                    onTap: () => _launchUrl('tel:+201033058697'),
+                    onTap: () => _launchUrl('tel:+12345678900'),
                   ),
                   const SizedBox(height: 12),
                   _buildContactCard(
                     icon: Icons.camera_alt_outlined,
                     title: 'Instagram',
-                    subtitle: '@zeyad_turki.lll',
+                    subtitle: '@citynex_app',
                     color: const Color(0xFFE1306C), // Instagram color
                     onTap: _openInstagram,
                   ),
