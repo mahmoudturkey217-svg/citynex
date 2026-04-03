@@ -16,7 +16,18 @@ class HelpSupportScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _openInstagram() async {
+    final nativeUrl = Uri.parse('instagram://user?username=zeyad_turki.lll');
+    final webUrl = Uri.parse('https://www.instagram.com/zeyad_turki.lll');
 
+    if (await canLaunchUrl(nativeUrl)) {
+      // Instagram app is installed, open it directly!
+      await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
+    } else {
+      // Instagram app is not installed, open the beautiful web fallback!
+      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    }
+  }
 
 
   @override
@@ -63,17 +74,25 @@ class HelpSupportScreen extends StatelessWidget {
                   _buildContactCard(
                     icon: Icons.email_outlined,
                     title: 'Email Support',
-                    subtitle: 'support@citynex.app',
+                    subtitle: 'zeyadmahmoud159@gmail.com',
                     color: AppColors.primary,
-                    onTap: () => _launchUrl('mailto:support@citynex.app'),
+                    onTap: () => _launchUrl('mailto:zeyadmahmoud159@gmail.com'),
                   ),
                   const SizedBox(height: 12),
                   _buildContactCard(
-                    icon: Icons.language_outlined,
-                    title: 'Website',
-                    subtitle: 'www.citynex.app',
+                    icon: Icons.phone_outlined,
+                    title: 'Call Us',
+                    subtitle: '01033058697',
                     color: AppColors.resolved,
-                    onTap: () => _launchUrl('https://www.citynex.app'),
+                    onTap: () => _launchUrl('tel:+201033058697'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildContactCard(
+                    icon: Icons.camera_alt_outlined,
+                    title: 'Instagram',
+                    subtitle: '@zeyad_turki.lll',
+                    color: const Color(0xFFE1306C), // Instagram color
+                    onTap: _openInstagram,
                   ),
                   const SizedBox(height: 32),
                   const SectionHeader(title: 'About CityNex'),

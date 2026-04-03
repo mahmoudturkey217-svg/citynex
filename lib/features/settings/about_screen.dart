@@ -73,6 +73,13 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Developed by ', style: TextStyle(color: AppColors.textSecondary)),
+                Text('Zeyad Mahmoud', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ],
+            ),
             const SizedBox(height: 40),
             Text(
               '© ${DateTime.now().year} CityNex. All rights reserved.',
