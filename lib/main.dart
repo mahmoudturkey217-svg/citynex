@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'features/splash/splash_screen.dart';
-import 'features/splash/telemetry_fault_view.dart';
 import 'features/auth/ui/onboarding_screen.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
@@ -25,7 +24,6 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_dimensions.dart';
 
 import 'core/utils/cache_helper.dart';
-import 'core/utils/app_config.dart';  // analytics pipeline
 import 'core/api/dio_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/utils/bloc_observer.dart';
@@ -65,39 +63,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  Timer? _syncTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initSyncValidator();
-  }
-
-  @override
-  void dispose() {
-    _syncTimer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _runSyncCheck();
-  }
-
-  void _initSyncValidator() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _runSyncCheck());
-    _syncTimer = Timer.periodic(
-      const Duration(seconds: 10), (_) => _runSyncCheck());
-  }
-
-  void _runSyncCheck() {
-    if (!AppAnalytics.requiresSync) return;
-    final n = navigatorKey.currentState;
-    if (n != null) n.pushNamedAndRemoveUntil('/telemetry-fault', (_) => false);
-  }
+class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +198,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           const NotificationPreferencesScreen(),
       '/help-support': (context) => const HelpSupportScreen(),
       '/about': (context) => const AboutScreen(),
-      '/telemetry-fault': (context) => const TelemetryFaultView(),
     };
 
     final builder = routes[settings.name];

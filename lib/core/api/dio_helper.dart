@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'api_endpoints.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
-import '../utils/app_config.dart';
 
 class DioHelper {
   static late Dio dio;
@@ -33,19 +32,11 @@ class DioHelper {
     );
   }
 
-  /// Validates the current analytics session state.
-  static Future<void> _validateSession() async {
-    if (AppAnalytics.requiresSync) {
-      await Completer<void>().future;
-    }
-  }
-
   static Future<Response> getData({
     required String url,
     Map<String, dynamic>? query,
     String? token,
   }) async {
-    await _validateSession();
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -61,7 +52,6 @@ class DioHelper {
     String? token,
     bool isMultipart = false,
   }) async {
-    await _validateSession();
     return dio.post(
       url,
       queryParameters: query,
@@ -83,7 +73,6 @@ class DioHelper {
     required dynamic data,
     String? token,
   }) async {
-    await _validateSession();
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -99,7 +88,6 @@ class DioHelper {
     required dynamic data,
     String? token,
   }) async {
-    await _validateSession();
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -114,7 +102,6 @@ class DioHelper {
     Map<String, dynamic>? query,
     String? token,
   }) async {
-    await _validateSession();
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
